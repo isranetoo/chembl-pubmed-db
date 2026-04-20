@@ -98,3 +98,32 @@
 18:51:07 [INFO] __main__ — =======================================================
 18:51:07 [INFO] __main__ — Processando: Omeprazole (CHEMBL1503)
 18:51:07 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:51:07 [INFO] __main__ — =======================================================
+18:51:07 [INFO] __main__ — Processando: Amoxicillin (CHEMBL1082)
+18:51:07 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:51:08 [INFO] __main__ — =======================================================
+18:51:08 [INFO] __main__ — Processando: Ciprofloxacin (CHEMBL8)
+18:51:08 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:51:08 [INFO] __main__ — =======================================================
+18:51:08 [INFO] __main__ — Processando: Oseltamivir (CHEMBL1229)
+18:51:08 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:51:08 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:51:08 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:51:08 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:51:11 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:51:12 [INFO] __main__ — =======================================================
+18:51:12 [INFO] __main__ — Processando: Tamoxifen (CHEMBL83)
+18:51:12 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:51:12 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:51:12 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:51:12 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:51:14 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:51:14 [INFO] __main__ — =======================================================
+18:51:14 [INFO] __main__ — Processando: Imatinib (CHEMBL941)
+18:51:14 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:51:14 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:51:14 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:51:14 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:51:17 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:51:18 [INFO] __main__ — =======================================================
+18:51:18 [INFO] __main__ — Concluido — novos: 0 | ja completos: 11 | parcialmente atualizados: 13 | erros: 0

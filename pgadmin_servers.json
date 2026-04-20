@@ -1,0 +1,16 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "chembl_pubmed",
+      "Group": "DrugXpert",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "chembl_pubmed",
+      "Username": "admin",
+      "Password": "admin123",
+      "SSLMode": "prefer",
+      "PassFile": "",
+      "ConnectionParameters": {}
+    }
+  }
+}

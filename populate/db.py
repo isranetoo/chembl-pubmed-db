@@ -19,8 +19,64 @@ log = logging.getLogger(__name__)
 
 
 # ============================================================
-# Compostos
+# Status incremental
 # ============================================================
+
+def get_compound_status(cur, chembl_id: str) -> Optional[dict]:
+    """
+    Consulta o banco para saber o que já está populado para um chembl_id.
+
+    Retorna None se o composto ainda não existe.
+    Retorna um dict com:
+      id           — UUID do composto no banco
+      has_admet    — True se admet_properties tem linha para este composto
+      has_bioact   — True se bioactivities tem ao menos 1 linha
+      has_ind      — True se indications tem ao menos 1 linha
+      has_mec      — True se mechanisms tem ao menos 1 linha
+      has_articles — True se article_compounds tem ao menos 1 linha
+      is_complete  — True se todas as 5 etapas estão preenchidas
+
+    Usado em populate.py para decidir quais etapas pular.
+    """
+    cur.execute(
+        """
+        SELECT
+            c.id,
+            EXISTS (SELECT 1 FROM admet_properties ap
+                    WHERE ap.compound_id = c.id)              AS has_admet,
+            EXISTS (SELECT 1 FROM bioactivities    b
+                    WHERE b.compound_id  = c.id)              AS has_bioact,
+            EXISTS (SELECT 1 FROM indications      i
+                    WHERE i.compound_id  = c.id)              AS has_ind,
+            EXISTS (SELECT 1 FROM mechanisms       m
+                    WHERE m.compound_id  = c.id)              AS has_mec,
+            EXISTS (SELECT 1 FROM article_compounds ac
+                    WHERE ac.compound_id = c.id)              AS has_articles
+        FROM compounds c
+        WHERE c.chembl_id = %s
+        """,
+        (chembl_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+
+    status = {
+        "id":           row[0],
+        "has_admet":    row[1],
+        "has_bioact":   row[2],
+        "has_ind":      row[3],
+        "has_mec":      row[4],
+        "has_articles": row[5],
+    }
+    status["is_complete"] = all([
+        status["has_admet"],
+        status["has_bioact"],
+        status["has_ind"],
+        status["has_mec"],
+        status["has_articles"],
+    ])
+    return status
 
 def upsert_compound(cur, data: dict) -> str:
     cur.execute(

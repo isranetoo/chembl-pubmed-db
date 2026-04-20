@@ -6,16 +6,56 @@ Importado por todos os outros módulos.
 """
 
 import logging
+import sys
+from datetime import datetime
+from pathlib import Path
 
 # ============================================================
-# Logging
+# Logging — console + arquivo com timestamp
 # ============================================================
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S",
-)
+def _setup_logging() -> Path:
+    """
+    Configura o root logger com dois handlers:
+      - StreamHandler  → console (stdout)
+      - FileHandler    → logs/populate_YYYY-MM-DD_HHhMM.log
+
+    Retorna o caminho do arquivo de log criado.
+    Idempotente: não adiciona handlers duplicados se chamado mais de uma vez.
+    """
+    LOG_DIR = Path(__file__).parent / "logs"
+    LOG_DIR.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%M")
+    log_file  = LOG_DIR / f"populate_{timestamp}.log"
+
+    fmt     = "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
+    datefmt = "%H:%M:%S"
+    formatter = logging.Formatter(fmt, datefmt=datefmt)
+
+    root = logging.getLogger()
+    if root.handlers:          # já configurado — não duplicar
+        return log_file
+
+    root.setLevel(logging.INFO)
+
+    # Console
+    console = logging.StreamHandler(sys.stdout)
+    console.setFormatter(formatter)
+    root.addHandler(console)
+
+    # Arquivo
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    root.addHandler(file_handler)
+
+    return log_file
+
+
+_log_file = _setup_logging()
+
+# Disponível para outros módulos que queiram exibir o caminho do log
+LOG_FILE: Path = _log_file
 
 # ============================================================
 # Banco de dados
@@ -55,8 +95,6 @@ POPULAR_COMPOUNDS = [
     ("CHEMBL521",    "Ibuprofen"),     # NSAID
     ("CHEMBL112",    "Paracetamol"),   # analgésico / antitérmico
     ("CHEMBL154",    "Naproxen"),      # NSAID
-    ("CHEMBL139",    "Diclofenac"),    # NSAID (derivado acético)
-    ("CHEMBL118",    "Celecoxib"),     # inibidor seletivo de COX-2
 
     # ── Sistema Nervoso Central ────────────────────────────────
     ("CHEMBL113",    "Caffeine"),      # estimulante
@@ -64,8 +102,6 @@ POPULAR_COMPOUNDS = [
     ("CHEMBL70",     "Morphine"),      # opioide
     ("CHEMBL41",     "Fluoxetine"),    # antidepressivo SSRI
     ("CHEMBL809",    "Sertraline"),    # antidepressivo SSRI
-    ("CHEMBL637",    "Venlafaxine"),   # antidepressivo SNRI
-    ("CHEMBL715",    "Olanzapine"),    # antipsicótico atípico
 
     # ── Cardiovascular ────────────────────────────────────────
     ("CHEMBL1464",   "Warfarin"),      # anticoagulante
@@ -74,39 +110,21 @@ POPULAR_COMPOUNDS = [
     ("CHEMBL191",    "Losartan"),      # antagonista do receptor de angiotensina II
     ("CHEMBL1064",   "Simvastatin"),   # estatina (HMG-CoA reductase)
     ("CHEMBL1487",   "Atorvastatin"),  # estatina (HMG-CoA reductase)
-    ("CHEMBL1496",   "Rosuvastatin"),  # estatina (HMG-CoA reductase)
     ("CHEMBL192",    "Sildenafil"),    # inibidor PDE5
-    ("CHEMBL13",     "Metoprolol"),    # beta-bloqueador seletivo β1
-    ("CHEMBL35",     "Furosemide"),    # diurético de alça
-    ("CHEMBL1393",   "Spironolactone"),# antagonista da aldosterona
-    ("CHEMBL1771",   "Clopidogrel"),   # antiagregante plaquetário (P2Y12)
 
     # ── Metabólico / Endócrino ────────────────────────────────
-    ("CHEMBL1431",   "Metformin"),     # antidiabético (biguanida)
+    ("CHEMBL1431",   "Metformin"),     # antidiabético
     ("CHEMBL384467", "Dexamethasone"), # corticosteroide
-    ("CHEMBL595",    "Pioglitazone"),  # agonista PPAR-γ (tiazolidinediona)
 
     # ── Gastrointestinal ──────────────────────────────────────
     ("CHEMBL1503",   "Omeprazole"),    # inibidor de bomba de prótons
-    ("CHEMBL46",     "Ondansetron"),   # antagonista 5-HT3 (antiemético)
-
-    # ── Respiratório ──────────────────────────────────────────
-    ("CHEMBL714",    "Salbutamol"),    # agonista β2 (broncodilatador)
-    ("CHEMBL787",    "Montelukast"),   # antagonista de receptor de leucotrieno
 
     # ── Antimicrobianos / Antivirais ──────────────────────────
     ("CHEMBL1082",   "Amoxicillin"),   # antibiótico betalactâmico
     ("CHEMBL8",      "Ciprofloxacin"), # antibiótico fluoroquinolona
-    ("CHEMBL137",    "Metronidazole"), # nitroimidazol (antibact. / antiprotoz.)
-    ("CHEMBL529",    "Azithromycin"),  # antibiótico macrolídeo
     ("CHEMBL1229",   "Oseltamivir"),   # antiviral (inibidor de neuraminidase)
-
-    # ── Antifúngicos ──────────────────────────────────────────
-    ("CHEMBL106",    "Fluconazole"),   # antifúngico triazólico
 
     # ── Oncologia ─────────────────────────────────────────────
     ("CHEMBL83",     "Tamoxifen"),     # antagonista de receptor de estrogênio
     ("CHEMBL941",    "Imatinib"),      # inibidor de tirosina quinase (BCR-ABL)
-    ("CHEMBL553",    "Erlotinib"),     # inibidor de tirosina quinase (EGFR)
-    ("CHEMBL428647", "Paclitaxel"),    # estabilizador de microtúbulo (taxano)
 ]

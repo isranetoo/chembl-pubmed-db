@@ -31,7 +31,7 @@ import time
 
 import psycopg2
 
-from config import DB_CONFIG, POPULAR_COMPOUNDS
+from config import DB_CONFIG, POPULAR_COMPOUNDS, LOG_FILE
 from chembl_client import (
     fetch_compound,
     fetch_bioactivities,
@@ -333,6 +333,7 @@ def main():
         skip.add("pubmed")
 
     # ── Log do que vai rodar ──────────────────────────────────
+    log.info(f"Log salvo em: {LOG_FILE}")
     log.info(f"Compostos: {len(compounds)}")
     if skip:
         log.info(f"Etapas ignoradas: {', '.join(sorted(skip))}")

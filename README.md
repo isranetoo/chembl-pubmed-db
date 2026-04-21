@@ -30,3 +30,8 @@ python populate.py --help
 python refresh.py              # atualiza as 3 views
 python refresh.py --view full  # atualiza só mv_compound_full
 python refresh.py --status     # mostra linhas e horário de refresh
+
+python validate_db.py                      # relatório completo
+python validate_db.py --section compounds  # só compostos
+python validate_db.py --section relations  # só integridade de FK
+python validate_db.py --fail-fast          # para no primeiro FAIL crítico

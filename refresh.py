@@ -18,7 +18,7 @@ import sys
 import psycopg2
 import psycopg2.extras
 
-from config import DB_CONFIG
+from populate.config import DB_CONFIG
 
 log = logging.getLogger(__name__)
 

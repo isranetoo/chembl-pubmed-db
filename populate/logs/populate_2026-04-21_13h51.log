@@ -1,0 +1,20 @@
+13:51:38 [INFO] __main__ — Atualizando todas as views materializadas...
+13:51:38 [ERROR] __main__ — Erro ao chamar refresh_materialized_views(): cannot refresh materialized view "public.mv_compound_articles" concurrently
+HINT:  Create a unique index with no WHERE clause on one or more columns of the materialized view.
+CONTEXT:  SQL statement "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_compound_articles"
+PL/pgSQL function refresh_materialized_views() line 11 at SQL statement
+
+13:51:38 [INFO] __main__ — Tentando atualizar individualmente...
+13:51:38 [INFO] __main__ —   mv_compound_profile atualizada em 171 ms.
+13:51:38 [ERROR] __main__ —   mv_compound_articles: cannot refresh materialized view "public.mv_compound_articles" concurrently
+HINT:  Create a unique index with no WHERE clause on one or more columns of the materialized view.
+
+13:51:38 [INFO] __main__ —   mv_compound_full atualizada em 262 ms.
+13:51:48 [INFO] __main__ — Atualizando mv_compound_full...
+13:51:49 [INFO] __main__ —   mv_compound_full atualizada em 1046 ms.
+13:51:56 [INFO] __main__ — Status das views materializadas:
+13:51:56 [INFO] __main__ — --------------------------------------------------
+13:51:56 [INFO] __main__ —   mv_compound_profile                42 linhas  | atualizada: 2026-04-21 16:51
+13:51:56 [INFO] __main__ —   mv_compound_articles              267 linhas  | atualizada: 2026-04-21 16:51
+13:51:56 [INFO] __main__ —   mv_compound_full                   42 linhas  | atualizada: 2026-04-21 16:51
+13:51:56 [INFO] __main__ — --------------------------------------------------

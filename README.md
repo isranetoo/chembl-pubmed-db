@@ -26,3 +26,7 @@ python populate.py --add CHEMBL941 --skip-pubmed --force
 
 # Ver todos os flags disponíveis
 python populate.py --help
+
+python refresh.py              # atualiza as 3 views
+python refresh.py --view full  # atualiza só mv_compound_full
+python refresh.py --status     # mostra linhas e horário de refresh

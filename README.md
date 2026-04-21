@@ -42,3 +42,17 @@ pytest tests/ -v -k "db"        # só banco
 pytest tests/ --tb=short        # saída compacta
 
 streamlit run dashboard.py
+
+uvicorn api:app --reload --port 8000
+
+# Compostos aprovados com QED alto
+curl "localhost:8000/compounds?min_phase=4&min_qed=0.6&sort_by=qed&sort_order=desc"
+
+# Indicações aprovadas do Imatinib
+curl "localhost:8000/compounds/CHEMBL941/indications?min_phase=4"
+
+# Busca full-text unificada
+curl "localhost:8000/search?q=inflammation+cox"
+
+# Artigos de revisão sobre aspirina
+curl "localhost:8000/articles?q=aspirin&pub_type=Review"

@@ -35,3 +35,8 @@ python validate_db.py                      # relatório completo
 python validate_db.py --section compounds  # só compostos
 python validate_db.py --section relations  # só integridade de FK
 python validate_db.py --fail-fast          # para no primeiro FAIL crítico
+
+pytest tests/ -v -k "chembl"    # só ChEMBL
+pytest tests/ -v -k "abstract"  # só parsers de abstract
+pytest tests/ -v -k "db"        # só banco
+pytest tests/ --tb=short        # saída compacta

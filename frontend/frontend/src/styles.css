@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  background-image:
+    radial-gradient(circle at top left, rgba(22, 201, 149, 0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.10), transparent 28%),
+    linear-gradient(to bottom, #020617, #020617);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+input,
+select,
+textarea {
+  @apply outline-none;
+}

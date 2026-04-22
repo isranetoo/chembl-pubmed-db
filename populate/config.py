@@ -60,14 +60,79 @@ LOG_FILE: Path = _log_file
 # ============================================================
 # Banco de dados
 # ============================================================
+#
+# Configuração resolvida nesta ordem de prioridade:
+#
+#   1. DATABASE_URL  (Supabase, Railway, Render, Heroku...)
+#        postgresql://user:pass@host:5432/dbname
+#        postgresql://user:pass@host:5432/dbname?sslmode=require
+#
+#   2. Variáveis individuais (qualquer banco)
+#        DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DB_SSLMODE
+#
+#   3. Defaults para o Docker local
+#        localhost:5432 / chembl_pubmed / admin / admin123
+#
+# Exemplos de uso:
+#
+#   # Docker local (sem variáveis — usa defaults)
+#   python populate.py
+#
+#   # Supabase
+#   $env:DATABASE_URL="postgresql://postgres.xxx:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+#   python populate.py
+#
+#   # Outra instância PostgreSQL
+#   $env:DB_HOST="meu-servidor.com"; $env:DB_PASSWORD="senha"
+#   python populate.py
 
-DB_CONFIG = {
-    "host":     "localhost",
-    "port":     5432,
-    "dbname":   "chembl_pubmed",
-    "user":     "admin",
-    "password": "admin123",
-}
+import os
+from urllib.parse import urlparse
+
+def _resolve_db_config() -> dict:
+    """
+    Resolve a configuração do banco a partir de variáveis de ambiente.
+    Retorna um dict compatível com psycopg2.connect(**config).
+    """
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+
+    if database_url:
+        # ── Modo 1: DATABASE_URL ─────────────────────────────
+        # Supabase e maioria dos PaaS usam este formato.
+        parsed = urlparse(database_url)
+        config = {
+            "host":     parsed.hostname,
+            "port":     parsed.port or 5432,
+            "dbname":   parsed.path.lstrip("/"),
+            "user":     parsed.username,
+            "password": parsed.password,
+        }
+        # Parâmetros extras da query string (ex: sslmode=require)
+        if parsed.query:
+            for param in parsed.query.split("&"):
+                if "=" in param:
+                    k, v = param.split("=", 1)
+                    config[k] = v
+
+        # Supabase exige SSL — garantir mesmo que não esteja na URL
+        if "supabase" in (parsed.hostname or ""):
+            config.setdefault("sslmode", "require")
+
+        return config
+
+    # ── Modo 2: variáveis individuais + defaults locais ──────
+    return {
+        "host":     os.environ.get("DB_HOST",     "localhost"),
+        "port":     int(os.environ.get("DB_PORT", "5432")),
+        "dbname":   os.environ.get("DB_NAME",     "chembl_pubmed"),
+        "user":     os.environ.get("DB_USER",     "admin"),
+        "password": os.environ.get("DB_PASSWORD", "admin123"),
+        **({} if not os.environ.get("DB_SSLMODE")
+           else {"sslmode": os.environ["DB_SSLMODE"]}),
+    }
+
+
+DB_CONFIG: dict = _resolve_db_config()
 
 # ============================================================
 # APIs

@@ -56,3 +56,26 @@ curl "localhost:8000/search?q=inflammation+cox"
 
 # Artigos de revisão sobre aspirina
 curl "localhost:8000/articles?q=aspirin&pub_type=Review"
+
+# Modo 1 — DATABASE_URL (Supabase e qualquer PaaS):
+bash# Windows PowerShell
+$env:DATABASE_URL="postgresql://postgres.xxx:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+python populate.py
+
+# Linux / macOS
+
+DATABASE_URL="postgresql://..." python populate.py
+
+# Modo 2 — variáveis individuais (outro servidor PostgreSQL):
+
+bash$env:DB_HOST="meu-servidor.com"
+$env:DB_PASSWORD="minha_senha"
+$env:DB_SSLMODE="require"
+python populate.py
+
+# Modo 3 — sem variáveis (Docker local, comportamento anterior):
+
+bashpython populate.py   # usa localhost:5432 / admin / admin123
+
+# supabase
+python migrate_to_supabase.py

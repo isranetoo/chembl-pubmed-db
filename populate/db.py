@@ -14,8 +14,15 @@ import logging
 from typing import Optional
 
 from chembl_client import to_numeric
+from config import DB_CONFIG
 
 log = logging.getLogger(__name__)
+
+# Logar destino do banco na inicialização do módulo
+_host = DB_CONFIG.get("host", "?")
+_db   = DB_CONFIG.get("dbname", "?")
+_ssl  = DB_CONFIG.get("sslmode", "off")
+log.info(f"Banco de dados: {_host}/{_db} (ssl={_ssl})")
 
 
 # ============================================================

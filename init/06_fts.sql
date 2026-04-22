@@ -150,60 +150,66 @@ BEGIN
 
     RETURN QUERY
 
-    -- Artigos
-    SELECT
-        'article'::TEXT,
-        a.id,
-        COALESCE(a.title, '(sem título)'),
-        LEFT(COALESCE(a.abstract, ''), 200),
-        ts_rank_cd(a.fts, tsq),
-        ts_headline(
-            'english', COALESCE(a.title, '') || ' ' || COALESCE(a.abstract, ''),
-            tsq,
-            'MaxWords=20, MinWords=5, MaxFragments=2, FragmentDelimiter=" … "'
-        )
-    FROM articles a
-    WHERE a.fts @@ tsq
-    ORDER BY ts_rank_cd(a.fts, tsq) DESC
-    LIMIT max_results
+    SELECT * FROM (
+        -- Artigos
+        SELECT
+            'article'::TEXT,
+            a.id,
+            COALESCE(a.title, '(sem título)'),
+            LEFT(COALESCE(a.abstract, ''), 200),
+            ts_rank_cd(a.fts, tsq),
+            ts_headline(
+                'english', COALESCE(a.title, '') || ' ' || COALESCE(a.abstract, ''),
+                tsq,
+                'MaxWords=20, MinWords=5, MaxFragments=2, FragmentDelimiter=" … "'
+            )
+        FROM articles a
+        WHERE a.fts @@ tsq
+        ORDER BY ts_rank_cd(a.fts, tsq) DESC
+        LIMIT max_results
+    ) _art
 
     UNION ALL
 
-    -- Compostos
-    SELECT
-        'compound'::TEXT,
-        c.id,
-        c.name,
-        c.chembl_id || COALESCE(' — ' || c.molecular_formula, ''),
-        ts_rank_cd(c.fts, tsq),
-        ts_headline(
-            'english', c.name || ' ' || COALESCE(c.chembl_id, ''),
-            tsq,
-            'MaxWords=10, MinWords=3'
-        )
-    FROM compounds c
-    WHERE c.fts @@ tsq
-    ORDER BY ts_rank_cd(c.fts, tsq) DESC
-    LIMIT max_results
+    SELECT * FROM (
+        -- Compostos
+        SELECT
+            'compound'::TEXT,
+            c.id,
+            c.name,
+            c.chembl_id || COALESCE(' — ' || c.molecular_formula, ''),
+            ts_rank_cd(c.fts, tsq),
+            ts_headline(
+                'english', c.name || ' ' || COALESCE(c.chembl_id, ''),
+                tsq,
+                'MaxWords=10, MinWords=3'
+            )
+        FROM compounds c
+        WHERE c.fts @@ tsq
+        ORDER BY ts_rank_cd(c.fts, tsq) DESC
+        LIMIT max_results
+    ) _cmp
 
     UNION ALL
 
-    -- Alvos
-    SELECT
-        'target'::TEXT,
-        t.id,
-        t.name,
-        COALESCE(t.organism, '') || COALESCE(' — ' || t.type, ''),
-        ts_rank_cd(t.fts, tsq),
-        ts_headline(
-            'english', t.name || ' ' || COALESCE(t.organism, ''),
-            tsq,
-            'MaxWords=10, MinWords=3'
-        )
-    FROM targets t
-    WHERE t.fts @@ tsq
-    ORDER BY ts_rank_cd(t.fts, tsq) DESC
-    LIMIT max_results
+    SELECT * FROM (
+        -- Alvos
+        SELECT
+            'target'::TEXT,
+            t.id,
+            t.name,
+            COALESCE(t.organism, '') || COALESCE(' — ' || t.type, ''),
+            ts_rank_cd(t.fts, tsq),
+            ts_headline(
+                'english', t.name || ' ' || COALESCE(t.organism, ''),
+                tsq,
+                'MaxWords=10, MinWords=3'
+            )
+        FROM targets t
+        WHERE t.fts @@ tsq
+        ORDER BY ts_rank_cd(t.fts, tsq) DESC
+        LIMIT max_results
+    ) _tgt
 
     ORDER BY rank DESC;
 

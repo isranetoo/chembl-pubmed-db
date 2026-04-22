@@ -79,3 +79,18 @@ bashpython populate.py   # usa localhost:5432 / admin / admin123
 
 # supabase
 python migrate_to_supabase.py
+
+# Testar o pipeline agora (sem agendar nada)
+python scheduler.py --run-now
+
+# Testar a cada 2 horas (modo dev)
+python scheduler.py --interval-hours 2
+
+# Produção — toda segunda às 03:00 (deixar rodando em background)
+python scheduler.py
+
+# Toda sexta às 06:00, pulando validate
+python scheduler.py --day fri --hour 6 --skip-validate
+
+# Forçar re-processo de tudo no próximo ciclo
+python scheduler.py --populate-args "--force"

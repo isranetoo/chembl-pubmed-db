@@ -1,0 +1,156 @@
+18:56:43 [INFO] db — Banco de dados: localhost/chembl_pubmed (ssl=off)
+18:56:43 [INFO] __main__ — Log salvo em: C:\Users\Israel Neto\Desktop\DrugXpert\chembl-pubmed-db\populate\logs\populate_2026-04-22_18h56.log
+18:56:43 [INFO] __main__ — Compostos: 52
+18:56:43 [INFO] __main__ — Conectando ao banco de dados...
+18:56:43 [INFO] __main__ — =======================================================
+18:56:43 [INFO] __main__ — Processando: Aspirin (CHEMBL25)
+18:56:43 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:43 [INFO] __main__ — =======================================================
+18:56:43 [INFO] __main__ — Processando: Ibuprofen (CHEMBL521)
+18:56:43 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:44 [INFO] __main__ — =======================================================
+18:56:44 [INFO] __main__ — Processando: Paracetamol (CHEMBL112)
+18:56:44 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:44 [INFO] __main__ — =======================================================
+18:56:44 [INFO] __main__ — Processando: Naproxen (CHEMBL154)
+18:56:44 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:45 [INFO] __main__ — =======================================================
+18:56:45 [INFO] __main__ — Processando: Meloxicam (CHEMBL599)
+18:56:45 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:46 [INFO] __main__ — =======================================================
+18:56:46 [INFO] __main__ — Processando: Tramadol (CHEMBL1237044)
+18:56:46 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:56:46 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:56:46 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:56:46 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:56:47 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:56:47 [INFO] __main__ — =======================================================
+18:56:47 [INFO] __main__ — Processando: Caffeine (CHEMBL113)
+18:56:47 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:48 [INFO] __main__ — =======================================================
+18:56:48 [INFO] __main__ — Processando: Diazepam (CHEMBL12)
+18:56:48 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:48 [INFO] __main__ — =======================================================
+18:56:48 [INFO] __main__ — Processando: Alprazolam (CHEMBL661)
+18:56:48 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:49 [INFO] __main__ — =======================================================
+18:56:49 [INFO] __main__ — Processando: Morphine (CHEMBL70)
+18:56:49 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:56:49 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:56:49 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:56:49 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:56:50 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:56:51 [INFO] __main__ — =======================================================
+18:56:51 [INFO] __main__ — Processando: Fluoxetine (CHEMBL41)
+18:56:51 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:56:51 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:56:51 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:56:51 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:56:52 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:56:52 [INFO] __main__ — =======================================================
+18:56:52 [INFO] __main__ — Processando: Sertraline (CHEMBL809)
+18:56:52 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:56:52 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:56:52 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:56:52 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:56:54 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:56:54 [INFO] __main__ — =======================================================
+18:56:54 [INFO] __main__ — Processando: Levodopa (CHEMBL1009)
+18:56:54 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:55 [INFO] __main__ — =======================================================
+18:56:55 [INFO] __main__ — Processando: Donepezil (CHEMBL502)
+18:56:55 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:56:55 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:56:55 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:56:55 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:56:56 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:56:57 [INFO] __main__ — =======================================================
+18:56:57 [INFO] __main__ — Processando: Gabapentin (CHEMBL940)
+18:56:57 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:57 [INFO] __main__ — =======================================================
+18:56:57 [INFO] __main__ — Processando: Pregabalin (CHEMBL1059)
+18:56:57 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:58 [INFO] __main__ — =======================================================
+18:56:58 [INFO] __main__ — Processando: Haloperidol (CHEMBL54)
+18:56:58 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:56:58 [INFO] __main__ — =======================================================
+18:56:58 [INFO] __main__ — Processando: Quetiapine (CHEMBL716)
+18:56:58 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:56:58 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:56:58 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:56:58 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:56:59 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:00 [INFO] __main__ — =======================================================
+18:57:00 [INFO] __main__ — Processando: Zolpidem (CHEMBL911)
+18:57:00 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:00 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:00 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:00 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:01 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:02 [INFO] __main__ — =======================================================
+18:57:02 [INFO] __main__ — Processando: Lithium carbonate (CHEMBL1200826)
+18:57:02 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:57:02 [INFO] __main__ — =======================================================
+18:57:02 [INFO] __main__ — Processando: Warfarin (CHEMBL1464)
+18:57:02 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:02 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:02 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:02 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:04 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:04 [INFO] __main__ — =======================================================
+18:57:04 [INFO] __main__ — Processando: Amlodipine (CHEMBL1491)
+18:57:04 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:04 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:04 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:04 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:05 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:06 [INFO] __main__ — =======================================================
+18:57:06 [INFO] __main__ — Processando: Nifedipine (CHEMBL193)
+18:57:06 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:57:06 [INFO] __main__ — =======================================================
+18:57:06 [INFO] __main__ — Processando: Lisinopril (CHEMBL1237)
+18:57:06 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:06 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:06 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:06 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:08 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:08 [INFO] __main__ — =======================================================
+18:57:08 [INFO] __main__ — Processando: Enalapril (CHEMBL578)
+18:57:08 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:08 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:08 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:08 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:09 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:10 [INFO] __main__ — =======================================================
+18:57:10 [INFO] __main__ — Processando: Losartan (CHEMBL191)
+18:57:10 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:10 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:10 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:10 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:11 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:12 [INFO] __main__ — =======================================================
+18:57:12 [INFO] __main__ — Processando: Valsartan (CHEMBL1069)
+18:57:12 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:57:12 [INFO] __main__ — =======================================================
+18:57:12 [INFO] __main__ — Processando: Simvastatin (CHEMBL1064)
+18:57:12 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:57:13 [INFO] __main__ — =======================================================
+18:57:13 [INFO] __main__ — Processando: Atorvastatin (CHEMBL1487)
+18:57:13 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:13 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:13 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:13 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:14 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:14 [INFO] __main__ — =======================================================
+18:57:14 [INFO] __main__ — Processando: Sildenafil (CHEMBL192)
+18:57:14 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:14 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:14 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:14 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:57:16 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:57:16 [INFO] __main__ — =======================================================
+18:57:16 [INFO] __main__ — Processando: Propranolol (CHEMBL27)
+18:57:16 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:57:16 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:57:16 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:57:16 [INFO] __main__ —   Indicacoes: ja existem, pulando.

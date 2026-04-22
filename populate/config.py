@@ -156,40 +156,72 @@ MAX_ARTICLES = 5   # artigos buscados no PubMed
 
 POPULAR_COMPOUNDS = [
     # ── Analgésicos / Anti-inflamatórios ──────────────────────
-    ("CHEMBL25",     "Aspirin"),       # NSAID / antiagregante plaquetário
-    ("CHEMBL521",    "Ibuprofen"),     # NSAID
-    ("CHEMBL112",    "Paracetamol"),   # analgésico / antitérmico
-    ("CHEMBL154",    "Naproxen"),      # NSAID
+    ("CHEMBL25",       "Aspirin"),          # NSAID / antiagregante plaquetário
+    ("CHEMBL521",      "Ibuprofen"),        # NSAID
+    ("CHEMBL112",      "Paracetamol"),      # analgésico / antitérmico
+    ("CHEMBL154",      "Naproxen"),         # NSAID
+    ("CHEMBL599",      "Meloxicam"),        # NSAID inibidor preferencial de COX-2
+    ("CHEMBL1237044",  "Tramadol"),         # opioide atípico / inibidor de recaptação
 
     # ── Sistema Nervoso Central ────────────────────────────────
-    ("CHEMBL113",    "Caffeine"),      # estimulante
-    ("CHEMBL12",     "Diazepam"),      # benzodiazepínico
-    ("CHEMBL70",     "Morphine"),      # opioide
-    ("CHEMBL41",     "Fluoxetine"),    # antidepressivo SSRI
-    ("CHEMBL809",    "Sertraline"),    # antidepressivo SSRI
+    ("CHEMBL113",      "Caffeine"),         # estimulante (inibidor de adenosina)
+    ("CHEMBL12",       "Diazepam"),         # benzodiazepínico
+    ("CHEMBL661",      "Alprazolam"),       # benzodiazepínico (ansiolítico)
+    ("CHEMBL70",       "Morphine"),         # opioide
+    ("CHEMBL41",       "Fluoxetine"),       # antidepressivo SSRI
+    ("CHEMBL809",      "Sertraline"),       # antidepressivo SSRI
+    ("CHEMBL1009",     "Levodopa"),         # precursor de dopamina (Parkinson)
+    ("CHEMBL502",      "Donepezil"),        # inibidor de acetilcolinesterase (Alzheimer)
+    ("CHEMBL940",      "Gabapentin"),       # anticonvulsivante / gabaminético
+    ("CHEMBL1059",     "Pregabalin"),       # anticonvulsivante / gabaminético
+    ("CHEMBL54",       "Haloperidol"),      # antipsicótico típico (bloq. D2)
+    ("CHEMBL716",      "Quetiapine"),       # antipsicótico atípico
+    ("CHEMBL911",      "Zolpidem"),         # hipnótico não-benzodiazepínico
+    ("CHEMBL1200826",  "Lithium carbonate"),# estabilizador de humor (transt. bipolar)
 
     # ── Cardiovascular ────────────────────────────────────────
-    ("CHEMBL1464",   "Warfarin"),      # anticoagulante
-    ("CHEMBL1491",   "Amlodipine"),    # bloqueador de canal de cálcio
-    ("CHEMBL1237",   "Lisinopril"),    # inibidor da ECA
-    ("CHEMBL191",    "Losartan"),      # antagonista do receptor de angiotensina II
-    ("CHEMBL1064",   "Simvastatin"),   # estatina (HMG-CoA reductase)
-    ("CHEMBL1487",   "Atorvastatin"),  # estatina (HMG-CoA reductase)
-    ("CHEMBL192",    "Sildenafil"),    # inibidor PDE5
+    ("CHEMBL1464",     "Warfarin"),         # anticoagulante
+    ("CHEMBL1491",     "Amlodipine"),       # bloqueador de canal de cálcio
+    ("CHEMBL193",      "Nifedipine"),       # bloqueador de canal de cálcio (DHP)
+    ("CHEMBL1237",     "Lisinopril"),       # inibidor da ECA
+    ("CHEMBL578",      "Enalapril"),        # inibidor da ECA (pró-fármaco)
+    ("CHEMBL191",      "Losartan"),         # antagonista receptor angiotensina II
+    ("CHEMBL1069",     "Valsartan"),        # antagonista receptor angiotensina II
+    ("CHEMBL1064",     "Simvastatin"),      # estatina (HMG-CoA reductase)
+    ("CHEMBL1487",     "Atorvastatin"),     # estatina (HMG-CoA reductase)
+    ("CHEMBL192",      "Sildenafil"),       # inibidor PDE5
+    ("CHEMBL27",       "Propranolol"),      # beta-bloqueador não seletivo
+    ("CHEMBL1751",     "Digoxin"),          # glicosídeo cardíaco (inib. Na/K-ATPase)
 
     # ── Metabólico / Endócrino ────────────────────────────────
-    ("CHEMBL1431",   "Metformin"),     # antidiabético
-    ("CHEMBL384467", "Dexamethasone"), # corticosteroide
+    ("CHEMBL1431",     "Metformin"),        # antidiabético (biguanida)
+    ("CHEMBL384467",   "Dexamethasone"),    # corticosteroide
+    ("CHEMBL1422",     "Sitagliptin"),      # inibidor de DPP-4
+    ("CHEMBL2107830",  "Empagliflozin"),    # inibidor SGLT-2
 
     # ── Gastrointestinal ──────────────────────────────────────
-    ("CHEMBL1503",   "Omeprazole"),    # inibidor de bomba de prótons
+    ("CHEMBL1503",     "Omeprazole"),       # inibidor de bomba de prótons
+    ("CHEMBL1502",     "Pantoprazole"),     # inibidor de bomba de prótons
 
-    # ── Antimicrobianos / Antivirais ──────────────────────────
-    ("CHEMBL1082",   "Amoxicillin"),   # antibiótico betalactâmico
-    ("CHEMBL8",      "Ciprofloxacin"), # antibiótico fluoroquinolona
-    ("CHEMBL1229",   "Oseltamivir"),   # antiviral (inibidor de neuraminidase)
+    # ── Antimicrobianos ───────────────────────────────────────
+    ("CHEMBL1082",     "Amoxicillin"),      # antibiótico betalactâmico
+    ("CHEMBL8",        "Ciprofloxacin"),    # antibiótico fluoroquinolona
+    ("CHEMBL1433",     "Doxycycline"),      # antibiótico tetraciclínico
+    ("CHEMBL262777",   "Vancomycin"),       # glicopeptídeo (infecções por MRSA)
+
+    # ── Antivirais ────────────────────────────────────────────
+    ("CHEMBL1229",     "Oseltamivir"),      # antiviral (inibidor de neuraminidase)
+    ("CHEMBL1486",     "Tenofovir"),        # antirretroviral (inibidor de TN-RT)
+    ("CHEMBL223228",   "Efavirenz"),        # antirretroviral (inibidor não-nucleosídeo de RT)
 
     # ── Oncologia ─────────────────────────────────────────────
-    ("CHEMBL83",     "Tamoxifen"),     # antagonista de receptor de estrogênio
-    ("CHEMBL941",    "Imatinib"),      # inibidor de tirosina quinase (BCR-ABL)
+    ("CHEMBL83",       "Tamoxifen"),        # antagonista receptor de estrogênio
+    ("CHEMBL941",      "Imatinib"),         # inibidor de tirosina quinase (BCR-ABL)
+    ("CHEMBL34259",    "Methotrexate"),     # antimetabólito (inibidor de DHFR)
+    ("CHEMBL1773",     "Capecitabine"),     # pró-fármaco do 5-fluorouracil
+    ("CHEMBL1351",     "Carboplatin"),      # agente alquilante (derivado de platina)
+
+    # ── Respiratório ──────────────────────────────────────────
+    ("CHEMBL1900528",  "Tiotropium"),       # anticolinérgico de longa ação (DPOC)
+    ("CHEMBL1473",     "Fluticasone"),      # corticosteroide inalatório
 ]

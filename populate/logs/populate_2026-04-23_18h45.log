@@ -1090,3 +1090,53 @@
 18:53:17 [INFO] __main__ —   Bioatividades: ja existem, pulando.
 18:53:17 [INFO] __main__ —   Indicacoes: ja existem, pulando.
 18:53:19 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:53:20 [INFO] __main__ — =======================================================
+18:53:20 [INFO] __main__ — Processando: OLSALAZINE (CHEMBL425)
+18:53:21 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:53:21 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:53:21 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:53:21 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:53:22 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:53:23 [INFO] __main__ — =======================================================
+18:53:23 [INFO] __main__ — Processando: MECHLORETHAMINE (CHEMBL427)
+18:53:23 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:53:24 [INFO] __main__ — =======================================================
+18:53:24 [INFO] __main__ — Processando: TROVAFLOXACIN (CHEMBL428)
+18:53:24 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:53:25 [INFO] __main__ — =======================================================
+18:53:25 [INFO] __main__ — Processando: LABETALOL (CHEMBL429)
+18:53:25 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:53:25 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:53:25 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:53:25 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:53:26 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:53:27 [INFO] __main__ — =======================================================
+18:53:27 [INFO] __main__ — Processando: GEMIFLOXACIN (CHEMBL430)
+18:53:28 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:53:28 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:53:28 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:53:28 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:53:29 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:53:29 [INFO] __main__ — =======================================================
+18:53:29 [INFO] __main__ — Processando: SPIRAPRIL (CHEMBL431)
+18:53:32 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:53:32 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:53:32 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:53:32 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:53:34 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:53:34 [INFO] __main__ — =======================================================
+18:53:34 [INFO] __main__ — Processando: VALPROATE SODIUM (CHEMBL433)
+18:53:35 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:53:35 [INFO] __main__ — =======================================================
+18:53:35 [INFO] __main__ — Processando: ISOPROTERENOL (CHEMBL434)
+18:53:36 [INFO] __main__ —   [PARCIAL] Faltando: mecanismos
+18:53:36 [INFO] __main__ —   ADMET: ja existe, pulando.
+18:53:36 [INFO] __main__ —   Bioatividades: ja existem, pulando.
+18:53:36 [INFO] __main__ —   Indicacoes: ja existem, pulando.
+18:53:37 [INFO] __main__ —   Artigos: ja existem, pulando.
+18:53:38 [INFO] __main__ — =======================================================
+18:53:38 [INFO] __main__ — Processando: HYDROCHLOROTHIAZIDE (CHEMBL435)
+18:53:39 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)
+18:53:40 [INFO] __main__ — =======================================================
+18:53:40 [INFO] __main__ — Processando: TOLRESTAT (CHEMBL436)
+18:53:40 [INFO] __main__ —   Ja completo — pulando. (use --force para re-processar)

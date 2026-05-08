@@ -13,8 +13,15 @@ Convenções:
 import logging
 from typing import Optional
 
+import psycopg2
+
 from chembl_client import to_numeric
 from config import DB_CONFIG
+
+
+def get_conn():
+    """Return a new psycopg2 connection using DB_CONFIG."""
+    return psycopg2.connect(**DB_CONFIG)
 
 log = logging.getLogger(__name__)
 

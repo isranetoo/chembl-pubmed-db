@@ -1,8 +1,8 @@
 # Integração do frontend no repositório `chembl-pubmed-db`
 
-Este pacote foi montado como um overlay: você só precisa copiar a pasta `frontend/` para a raiz do repositório.
+O frontend agora vive diretamente em `frontend/`, sem a pasta aninhada `frontend/frontend/`.
 
-## Onde colocar
+## Localização
 
 ```txt
 chembl-pubmed-db/
@@ -10,7 +10,9 @@ chembl-pubmed-db/
   dashboard.py
   docker-compose.yml
   requirements.txt
-  frontend/   <-- adicionar aqui
+  frontend/
+    package.json
+    src/
 ```
 
 ## Sequência de uso
@@ -53,8 +55,8 @@ npm run dev
 - `GET /targets`
 - `GET /search`
 
-## Ajustes que valem no próximo commit do backend
+## Próximos ajustes sugeridos
 
-1. mover `DB_CONFIG` de `api.py` e `dashboard.py` para variáveis de ambiente
-2. padronizar o naming visual entre repo, API e dashboard
-3. adicionar um endpoint de health mais detalhado, se quiser mostrar status no frontend
+1. Mover `DB_CONFIG` de `api.py` e `dashboard.py` para variáveis de ambiente.
+2. Padronizar o naming visual entre repo, API e dashboard.
+3. Adicionar um endpoint de health mais detalhado, se quiser mostrar status no frontend.

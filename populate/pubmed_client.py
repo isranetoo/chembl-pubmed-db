@@ -15,8 +15,8 @@ from typing import Optional
 
 import requests
 
-from config import PUBMED_BASE, MAX_ARTICLES
-from http_retry import get_with_retry
+from .config import PUBMED_BASE, MAX_ARTICLES
+from .http_retry import get_with_retry
 
 log = logging.getLogger(__name__)
 

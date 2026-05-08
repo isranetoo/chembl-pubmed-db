@@ -31,8 +31,8 @@ import time
 
 import psycopg2
 
-from config import DB_CONFIG, POPULAR_COMPOUNDS, LOG_FILE
-from chembl_client import (
+from .config import DB_CONFIG, POPULAR_COMPOUNDS, LOG_FILE
+from .chembl_client import (
     fetch_compound,
     fetch_bioactivities,
     fetch_target,
@@ -40,8 +40,8 @@ from chembl_client import (
     fetch_mechanisms,
     to_numeric,
 )
-from pubmed_client import search_pubmed, fetch_articles
-from db import (
+from .pubmed_client import search_pubmed, fetch_articles
+from .db import (
     get_compound_status,
     upsert_compound,
     upsert_target,

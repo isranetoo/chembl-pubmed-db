@@ -248,7 +248,7 @@ class TestToNumeric(unittest.TestCase):
 
 class TestFetchCompound(unittest.TestCase):
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_sucesso(self, mock_get):
         mock_get.return_value = _mock_response(ASPIRIN_API_RESPONSE)
         from populate.chembl_client import fetch_compound
@@ -261,7 +261,7 @@ class TestFetchCompound(unittest.TestCase):
         self.assertEqual(result["mol_weight"],       "180.16")
         self.assertEqual(result["smiles"],           "CC(=O)Oc1ccccc1C(=O)O")
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_admet_populado(self, mock_get):
         mock_get.return_value = _mock_response(ASPIRIN_API_RESPONSE)
         from populate.chembl_client import fetch_compound
@@ -273,14 +273,14 @@ class TestFetchCompound(unittest.TestCase):
         self.assertEqual(admet["qed_weighted"],     "0.55")
         self.assertEqual(admet["molecular_species"], "ACID")
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_erro_retorna_none(self, mock_get):
         mock_get.side_effect = Exception("timeout")
         from populate.chembl_client import fetch_compound
         result = fetch_compound("CHEMBL999")
         self.assertIsNone(result)
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_pref_name_none_usa_chembl_id(self, mock_get):
         data = {**ASPIRIN_API_RESPONSE, "pref_name": None}
         data["molecule_properties"] = ASPIRIN_API_RESPONSE["molecule_properties"]
@@ -297,7 +297,7 @@ class TestFetchCompound(unittest.TestCase):
 
 class TestFetchBioactivities(unittest.TestCase):
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_retorna_lista(self, mock_get):
         mock_get.return_value = _mock_response(BIOACTIVITIES_RESPONSE)
         from populate.chembl_client import fetch_bioactivities
@@ -305,13 +305,13 @@ class TestFetchBioactivities(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["type"], "IC50")
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_erro_retorna_lista_vazia(self, mock_get):
         mock_get.side_effect = Exception("connection error")
         from populate.chembl_client import fetch_bioactivities
         self.assertEqual(fetch_bioactivities("CHEMBL25"), [])
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_resposta_vazia(self, mock_get):
         mock_get.return_value = _mock_response({"activities": []})
         from populate.chembl_client import fetch_bioactivities
@@ -324,7 +324,7 @@ class TestFetchBioactivities(unittest.TestCase):
 
 class TestFetchTarget(unittest.TestCase):
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_sucesso(self, mock_get):
         mock_get.return_value = _mock_response(TARGET_RESPONSE)
         from populate.chembl_client import fetch_target
@@ -333,7 +333,7 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(result["organism"], "Homo sapiens")
         self.assertEqual(result["type"],     "SINGLE PROTEIN")
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_erro_retorna_none(self, mock_get):
         mock_get.side_effect = Exception("not found")
         from populate.chembl_client import fetch_target
@@ -346,8 +346,8 @@ class TestFetchTarget(unittest.TestCase):
 
 class TestFetchIndications(unittest.TestCase):
 
-    @patch("chembl_client.time")
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.time")
+    @patch("populate.chembl_client.get_with_retry")
     def test_pagina_unica(self, mock_get, mock_time):
         mock_get.return_value = _mock_response(INDICATIONS_PAGE1)
         from populate.chembl_client import fetch_indications
@@ -355,8 +355,8 @@ class TestFetchIndications(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["mesh_heading"], "Headache")
 
-    @patch("chembl_client.time")
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.time")
+    @patch("populate.chembl_client.get_with_retry")
     def test_paginacao_duas_paginas(self, mock_get, mock_time):
         """
         Verifica que fetch_indications faz múltiplas requisições quando
@@ -406,8 +406,8 @@ class TestFetchIndications(unittest.TestCase):
         self.assertEqual(result[1]["mesh_heading"], "Fever")
         self.assertEqual(mock_get.call_count, 2)
 
-    @patch("chembl_client.time")
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.time")
+    @patch("populate.chembl_client.get_with_retry")
     def test_erro_retorna_lista_parcial(self, mock_get, mock_time):
         mock_get.side_effect = Exception("timeout")
         from populate.chembl_client import fetch_indications
@@ -420,7 +420,7 @@ class TestFetchIndications(unittest.TestCase):
 
 class TestFetchMechanisms(unittest.TestCase):
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_sucesso(self, mock_get):
         mock_get.return_value = _mock_response(MECHANISMS_RESPONSE)
         from populate.chembl_client import fetch_mechanisms
@@ -430,7 +430,7 @@ class TestFetchMechanisms(unittest.TestCase):
         self.assertEqual(result[0]["mechanism_of_action"], "Cyclooxygenase inhibitor")
         self.assertEqual(result[0]["direct_interaction"],  1)
 
-    @patch("chembl_client.get_with_retry")
+    @patch("populate.chembl_client.get_with_retry")
     def test_erro_retorna_lista_vazia(self, mock_get):
         mock_get.side_effect = Exception("error")
         from populate.chembl_client import fetch_mechanisms
@@ -617,20 +617,20 @@ class TestParseMeshTerms(unittest.TestCase):
 
 class TestSearchPubmed(unittest.TestCase):
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_retorna_pmids(self, mock_get):
         mock_get.return_value = _mock_response(PUBMED_ESEARCH_RESPONSE)
         from populate.pubmed_client import search_pubmed
         result = search_pubmed("Aspirin")
         self.assertEqual(result, ["38000001", "38000002"])
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_erro_retorna_lista_vazia(self, mock_get):
         mock_get.side_effect = Exception("timeout")
         from populate.pubmed_client import search_pubmed
         self.assertEqual(search_pubmed("Aspirin"), [])
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_lista_vazia_quando_sem_resultados(self, mock_get):
         mock_get.return_value = _mock_response({"esearchresult": {"idlist": []}})
         from populate.pubmed_client import search_pubmed
@@ -643,7 +643,7 @@ class TestSearchPubmed(unittest.TestCase):
 
 class TestFetchArticles(unittest.TestCase):
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_article_com_abstract_estruturado(self, mock_get):
         mock_get.return_value = _mock_response(
             content=PUBMED_EFETCH_XML.encode()
@@ -669,7 +669,7 @@ class TestFetchArticles(unittest.TestCase):
         kws = json.loads(art["keywords"])
         self.assertIn("cardioprotection", kws)
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_article_com_abstract_simples_e_nome_coletivo(self, mock_get):
         mock_get.return_value = _mock_response(
             content=PUBMED_EFETCH_XML_SIMPLE_ABSTRACT.encode()
@@ -683,21 +683,21 @@ class TestFetchArticles(unittest.TestCase):
         self.assertEqual(art["pub_year"], 2022)
         self.assertIsNone(art["doi"])
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_lista_vazia_retorna_lista_vazia(self, mock_get):
         from populate.pubmed_client import fetch_articles
         result = fetch_articles([])
         self.assertEqual(result, [])
         mock_get.assert_not_called()
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_xml_invalido_retorna_lista_vazia(self, mock_get):
         mock_get.return_value = _mock_response(content=b"<nao_e_xml_valido")
         from populate.pubmed_client import fetch_articles
         result = fetch_articles(["123"])
         self.assertEqual(result, [])
 
-    @patch("pubmed_client.get_with_retry")
+    @patch("populate.pubmed_client.get_with_retry")
     def test_erro_de_rede_retorna_lista_vazia(self, mock_get):
         mock_get.side_effect = Exception("connection error")
         from populate.pubmed_client import fetch_articles

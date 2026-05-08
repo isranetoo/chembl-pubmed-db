@@ -19,7 +19,7 @@ Nota: Este módulo é projetado para funcionar tanto como script standalone
 """
 
 import logging
-from db import get_conn
+from .db import get_conn
 
 logger = logging.getLogger("owkin_client")
 

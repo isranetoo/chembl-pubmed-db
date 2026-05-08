@@ -6,8 +6,7 @@ Configuração global do pytest.
 Resolve dois problemas antes de qualquer teste rodar:
 
 1. PATH — adiciona o diretório raiz do projeto ao sys.path para que
-   chembl_client, pubmed_client, db, config e http_retry sejam
-   encontrados independentemente de onde o pytest é chamado.
+   `populate.*` seja encontrado independentemente de onde o pytest é chamado.
 
 2. MOCKS de dependências externas — psycopg2 e requests podem não
    estar instalados no ambiente de CI/test. Este arquivo os substitui
@@ -21,7 +20,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 # ── 1. Adicionar raiz do projeto ao sys.path ─────────────────────────────────
-ROOT = Path(__file__).parent.parent.resolve()
+ROOT = Path(__file__).parent.resolve()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -47,8 +46,8 @@ if "psycopg2" not in sys.modules:
 
 # ── 3. Mock de requests ───────────────────────────────────────────────────────
 # chembl_client e pubmed_client importam requests.
-# Os testes usam @patch("chembl_client.get_with_retry") para controlar
-# as respostas — mas o import do módulo ainda precisa de requests.
+# Os testes usam patches nos clientes HTTP para controlar as respostas,
+# mas o import dos módulos ainda precisa de requests.
 if "requests" not in sys.modules:
     requests_mock = types.ModuleType("requests")
     requests_mock.get        = MagicMock()

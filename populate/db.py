@@ -15,8 +15,8 @@ from typing import Optional
 
 import psycopg2
 
-from chembl_client import to_numeric
-from config import DB_CONFIG
+from .chembl_client import to_numeric
+from .config import DB_CONFIG
 
 
 def get_conn():

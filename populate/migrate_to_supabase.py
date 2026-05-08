@@ -24,7 +24,7 @@ Uso:
 Estratégia:
     1. Conecta ao banco LOCAL (DB_CONFIG do config.py / .env)
     2. Conecta ao banco DESTINO (DATABASE_URL ou --target-url)
-    3. Aplica todos os arquivos init/*.sql no destino (schema)
+    3. Aplica todos os arquivos database/init/*.sql no destino (schema)
     4. Copia cada tabela em lotes (BATCH_SIZE linhas por vez)
        — respeitando a ordem de dependência das FKs
     5. Desativa triggers durante a cópia e os reativa ao final
@@ -78,27 +78,27 @@ TABLE_ORDER = [
 
 # Arquivos de schema em ordem de aplicação
 SCHEMA_FILES = [
-    "init/01_schema.sql",
-    "init/02_article_enrich.sql",
-    "init/03_indications.sql",
-    "init/04_mechanisms.sql",
-    "init/05_admet.sql",
-    "init/06_fts.sql",
-    "init/07_materialized_views.sql",
+    "database/init/01_schema.sql",
+    "database/init/02_article_enrich.sql",
+    "database/init/03_indications.sql",
+    "database/init/04_mechanisms.sql",
+    "database/init/05_admet.sql",
+    "database/init/06_fts.sql",
+    "database/init/07_materialized_views.sql",
 ]
 
 def _find_project_root() -> Path:
     """
-    Encontra a raiz do projeto buscando a pasta init/ a partir do script.
+    Encontra a raiz do projeto buscando a pasta database/init/ a partir do script.
     Funciona independente do diretório de trabalho atual.
     """
-    # Começa no diretório do script e sobe até encontrar init/
+    # Começa no diretório do script e sobe até encontrar database/init/
     candidate = Path(__file__).parent.resolve()
     for _ in range(4):   # busca até 4 níveis acima
-        if (candidate / "init").is_dir():
+        if (candidate / "database" / "init").is_dir():
             return candidate
         candidate = candidate.parent
-    # Fallback: diretório do script mesmo que init/ não exista
+    # Fallback: diretório do script mesmo que database/init/ não exista
     return Path(__file__).parent.resolve()
 
 
@@ -160,8 +160,8 @@ def connect_target(url: str) -> psycopg2.extensions.connection:
 # ============================================================
 
 def apply_schema(conn_dst: psycopg2.extensions.connection) -> None:
-    """Aplica todos os arquivos init/*.sql no banco destino."""
-    log.info(f"Aplicando schema no destino (init/ em: {ROOT / 'init'})...")
+    """Aplica todos os arquivos database/init/*.sql no banco destino."""
+    log.info(f"Aplicando schema no destino (init/ em: {ROOT / 'database' / 'init'})...")
     cur = conn_dst.cursor()
 
     for rel_path in SCHEMA_FILES:
@@ -467,7 +467,7 @@ exemplos:
     parser.add_argument(
         "--skip-schema",
         action="store_true",
-        help="Não aplicar os arquivos init/*.sql (banco destino já tem as tabelas).",
+        help="Não aplicar os arquivos database/init/*.sql (banco destino já tem as tabelas).",
     )
     parser.add_argument(
         "--only",

@@ -493,7 +493,7 @@ def check_views(cur) -> Section:
         except psycopg2.errors.UndefinedTable:
             sec.checks.append(_warn(
                 f"{view_name}: não existe",
-                "→ aplique: init/07_materialized_views.sql"
+                "→ aplique: database/init/07_materialized_views.sql"
             ))
             cur.connection.rollback()
 

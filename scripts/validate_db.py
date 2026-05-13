@@ -6,14 +6,14 @@ Imprime um relatório de saúde por seção e retorna exit code 1
 se houver problemas críticos.
 
 Uso:
-    python validate_db.py               # relatório completo
-    python validate_db.py --section compounds
-    python validate_db.py --section articles
-    python validate_db.py --section indications
-    python validate_db.py --section admet
-    python validate_db.py --section relations
-    python validate_db.py --section views
-    python validate_db.py --fail-fast   # para no primeiro problema crítico
+    python scripts/validate_db.py               # relatório completo
+    python scripts/validate_db.py --section compounds
+    python scripts/validate_db.py --section articles
+    python scripts/validate_db.py --section indications
+    python scripts/validate_db.py --section admet
+    python scripts/validate_db.py --section relations
+    python scripts/validate_db.py --section views
+    python scripts/validate_db.py --fail-fast   # para no primeiro problema crítico
 """
 
 import argparse
@@ -97,7 +97,6 @@ def _fail(name: str, detail: str = "", critical: bool = False) -> Check:
 def check_compounds(cur) -> Section:
     sec = Section("Compostos")
 
-    # Total
     cur.execute("SELECT COUNT(*) FROM compounds")
     total = cur.fetchone()[0]
     if total == 0:
@@ -105,7 +104,6 @@ def check_compounds(cur) -> Section:
         return sec
     sec.checks.append(_ok("Total de compostos", f"{total} compostos"))
 
-    # Sem ADMET
     cur.execute("""
         SELECT c.chembl_id, c.name
         FROM compounds c
@@ -124,7 +122,6 @@ def check_compounds(cur) -> Section:
     else:
         sec.checks.append(_ok("Todos os compostos têm ADMET"))
 
-    # Sem bioatividades
     cur.execute("""
         SELECT c.chembl_id, c.name
         FROM compounds c
@@ -135,14 +132,10 @@ def check_compounds(cur) -> Section:
     if rows:
         lista = ", ".join(r[1] for r in rows[:5])
         extra = f" e mais {len(rows)-5}" if len(rows) > 5 else ""
-        sec.checks.append(_warn(
-            f"Compostos sem bioatividades ({len(rows)})",
-            f"{lista}{extra}"
-        ))
+        sec.checks.append(_warn(f"Compostos sem bioatividades ({len(rows)})", f"{lista}{extra}"))
     else:
         sec.checks.append(_ok("Todos os compostos têm bioatividades"))
 
-    # Sem indicações
     cur.execute("""
         SELECT c.chembl_id, c.name
         FROM compounds c
@@ -153,14 +146,10 @@ def check_compounds(cur) -> Section:
     if rows:
         lista = ", ".join(r[1] for r in rows[:5])
         extra = f" e mais {len(rows)-5}" if len(rows) > 5 else ""
-        sec.checks.append(_warn(
-            f"Compostos sem indicações ({len(rows)})",
-            f"{lista}{extra}"
-        ))
+        sec.checks.append(_warn(f"Compostos sem indicações ({len(rows)})", f"{lista}{extra}"))
     else:
         sec.checks.append(_ok("Todos os compostos têm indicações"))
 
-    # Sem mecanismos
     cur.execute("""
         SELECT c.chembl_id, c.name
         FROM compounds c
@@ -171,14 +160,10 @@ def check_compounds(cur) -> Section:
     if rows:
         lista = ", ".join(r[1] for r in rows[:5])
         extra = f" e mais {len(rows)-5}" if len(rows) > 5 else ""
-        sec.checks.append(_warn(
-            f"Compostos sem mecanismos ({len(rows)})",
-            f"{lista}{extra}"
-        ))
+        sec.checks.append(_warn(f"Compostos sem mecanismos ({len(rows)})", f"{lista}{extra}"))
     else:
         sec.checks.append(_ok("Todos os compostos têm mecanismos"))
 
-    # Sem artigos
     cur.execute("""
         SELECT c.chembl_id, c.name
         FROM compounds c
@@ -189,14 +174,10 @@ def check_compounds(cur) -> Section:
     if rows:
         lista = ", ".join(r[1] for r in rows[:5])
         extra = f" e mais {len(rows)-5}" if len(rows) > 5 else ""
-        sec.checks.append(_warn(
-            f"Compostos sem artigos ({len(rows)})",
-            f"{lista}{extra}"
-        ))
+        sec.checks.append(_warn(f"Compostos sem artigos ({len(rows)})", f"{lista}{extra}"))
     else:
         sec.checks.append(_ok("Todos os compostos têm artigos"))
 
-    # Campos nulos críticos
     cur.execute("""
         SELECT COUNT(*) FROM compounds
         WHERE name IS NULL OR chembl_id IS NULL OR molecular_formula IS NULL
@@ -220,7 +201,6 @@ def check_articles(cur) -> Section:
         return sec
     sec.checks.append(_ok("Total de artigos", f"{total} artigos"))
 
-    # Sem abstract
     cur.execute("SELECT COUNT(*) FROM articles WHERE abstract IS NULL OR abstract = ''")
     n = cur.fetchone()[0]
     pct = round(n / total * 100, 1) if total else 0
@@ -228,12 +208,11 @@ def check_articles(cur) -> Section:
         level = _fail if pct > 50 else _warn
         sec.checks.append(level(
             f"Artigos sem abstract ({n} / {pct}%)",
-            "→ rode: python backfill_abstracts.py"
+            "→ rode: python scripts/backfill_abstracts.py"
         ))
     else:
         sec.checks.append(_ok("Todos os artigos têm abstract"))
 
-    # Sem MeSH
     cur.execute("""
         SELECT COUNT(*) FROM articles
         WHERE mesh_terms IS NULL OR mesh_terms = 'null'::jsonb OR mesh_terms = '[]'::jsonb
@@ -248,7 +227,6 @@ def check_articles(cur) -> Section:
     else:
         sec.checks.append(_ok("Todos os artigos têm termos MeSH"))
 
-    # Sem título
     cur.execute("SELECT COUNT(*) FROM articles WHERE title IS NULL OR title = ''")
     n = cur.fetchone()[0]
     if n > 0:
@@ -256,7 +234,6 @@ def check_articles(cur) -> Section:
     else:
         sec.checks.append(_ok("Todos os artigos têm título"))
 
-    # Sem ano
     cur.execute("SELECT COUNT(*) FROM articles WHERE pub_year IS NULL")
     n = cur.fetchone()[0]
     if n > 0:
@@ -264,7 +241,6 @@ def check_articles(cur) -> Section:
     else:
         sec.checks.append(_ok("Todos os artigos têm ano de publicação"))
 
-    # PMIDs duplicados (não deveria existir dado o UNIQUE, mas por segurança)
     cur.execute("""
         SELECT pmid, COUNT(*) AS c FROM articles
         GROUP BY pmid HAVING COUNT(*) > 1
@@ -275,7 +251,6 @@ def check_articles(cur) -> Section:
     else:
         sec.checks.append(_ok("Nenhum PMID duplicado"))
 
-    # Distribuição por ano
     cur.execute("""
         SELECT pub_year, COUNT(*) AS c
         FROM articles WHERE pub_year IS NOT NULL
@@ -299,7 +274,6 @@ def check_indications(cur) -> Section:
         return sec
     sec.checks.append(_ok("Total de indicações", f"{total} indicações"))
 
-    # Sem mesh_heading
     cur.execute("""
         SELECT COUNT(*) FROM indications
         WHERE mesh_heading IS NULL AND efo_term IS NULL
@@ -314,7 +288,6 @@ def check_indications(cur) -> Section:
     else:
         sec.checks.append(_ok("Todas as indicações têm nome (MeSH ou EFO)"))
 
-    # Sem mesh_heading mas com efo_term (parcial)
     cur.execute("""
         SELECT COUNT(*) FROM indications
         WHERE mesh_heading IS NULL AND efo_term IS NOT NULL
@@ -326,7 +299,6 @@ def check_indications(cur) -> Section:
             "Normal — ChEMBL nem sempre fornece ambos"
         ))
 
-    # Distribuição por fase clínica
     cur.execute("""
         SELECT
             CASE max_phase
@@ -346,7 +318,6 @@ def check_indications(cur) -> Section:
     dist = "  ".join(f"{r[0]}: {r[1]}" for r in rows)
     sec.checks.append(_ok("Distribuição por fase", dist))
 
-    # drugind_id duplicados
     cur.execute("""
         SELECT COUNT(*) FROM (
             SELECT drugind_id FROM indications
@@ -372,7 +343,6 @@ def check_admet(cur) -> Section:
         return sec
     sec.checks.append(_ok("Total de registros ADMET", f"{total} compostos"))
 
-    # Campos nulos por coluna
     campos = [
         ("alogp",          "ALogP"),
         ("psa",            "PSA"),
@@ -394,7 +364,6 @@ def check_admet(cur) -> Section:
         else:
             sec.checks.append(_ok(f"{label}: sem nulos"))
 
-    # Resumo de druglikeness
     cur.execute("""
         SELECT
             COUNT(*) FILTER (WHERE num_ro5_violations = 0) AS lipinski_ok,
@@ -450,7 +419,6 @@ def check_relations(cur) -> Section:
         else:
             sec.checks.append(_ok(f"FK OK: {label}"))
 
-    # Artigos sem vínculo com nenhum composto
     cur.execute("""
         SELECT COUNT(*) FROM articles a
         WHERE NOT EXISTS (SELECT 1 FROM article_compounds ac WHERE ac.article_id = a.id)
@@ -483,7 +451,7 @@ def check_views(cur) -> Section:
             if count == 0:
                 sec.checks.append(_warn(
                     f"{view_name}: vazia",
-                    f"→ rode: python refresh.py --view {alias}"
+                    f"→ rode: python scripts/refresh.py --view {alias}"
                 ))
             else:
                 sec.checks.append(_ok(
@@ -571,7 +539,6 @@ def main() -> None:
                     print(f"\n  [fail-fast] Parando após FAIL crítico em '{section.title}'.")
                     break
 
-    # Resumo final
     total_ok   = sum(sum(1 for c in s.checks if c.status == "OK")   for s in all_sections)
     total_warn = sum(sum(1 for c in s.checks if c.status == "WARN") for s in all_sections)
     total_fail = sum(sum(1 for c in s.checks if c.status == "FAIL") for s in all_sections)

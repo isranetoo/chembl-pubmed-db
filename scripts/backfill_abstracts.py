@@ -5,21 +5,19 @@ Preenche abstracts, MeSH terms e keywords para artigos que foram
 inseridos sem essas informacoes (versao antiga usava esummary).
 
 Uso:
-    python backfill_abstracts.py
+    python scripts/backfill_abstracts.py
 """
 
 import json
 import logging
 import time
 import xml.etree.ElementTree as ET
-from typing import Optional
 
 import psycopg2
 import requests
 
-from populate import (
-    DB_CONFIG,
-    PUBMED_BASE,
+from populate.config import DB_CONFIG, PUBMED_BASE
+from populate.pubmed_client import (
     _parse_abstract,
     _parse_doi,
     _parse_keywords,
@@ -134,11 +132,10 @@ def main():
 
     log.info(f"Encontrados {total} artigos para atualizar.")
 
-    # Processar em lotes
     updated = 0
     for i in range(0, total, BATCH_SIZE):
         batch = rows[i : i + BATCH_SIZE]
-        id_map = {pmid: art_id for art_id, pmid in batch}   # {pmid: uuid}
+        id_map = {pmid: art_id for art_id, pmid in batch}
         pmids  = list(id_map.keys())
 
         log.info(f"Lote {i // BATCH_SIZE + 1}: {len(pmids)} PMIDs...")

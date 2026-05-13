@@ -4,11 +4,11 @@ refresh.py
 Atualiza as views materializadas após um novo populate.
 
 Uso:
-    python refresh.py                  # atualiza as 3 views
-    python refresh.py --view profile   # atualiza só mv_compound_profile
-    python refresh.py --view articles  # atualiza só mv_compound_articles
-    python refresh.py --view full      # atualiza só mv_compound_full
-    python refresh.py --status         # mostra quando cada view foi atualizada pela última vez
+    python scripts/refresh.py                  # atualiza as 3 views
+    python scripts/refresh.py --view profile   # atualiza só mv_compound_profile
+    python scripts/refresh.py --view articles  # atualiza só mv_compound_articles
+    python scripts/refresh.py --view full      # atualiza só mv_compound_full
+    python scripts/refresh.py --status         # mostra quando cada view foi atualizada pela última vez
 """
 
 import argparse

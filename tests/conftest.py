@@ -20,7 +20,8 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 # ── 1. Adicionar raiz do projeto ao sys.path ─────────────────────────────────
-ROOT = Path(__file__).parent.resolve()
+# conftest.py está em tests/, então subimos um nível para chegar à raiz
+ROOT = Path(__file__).parent.parent.resolve()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -34,7 +35,7 @@ if "psycopg2" not in sys.modules:
     psycopg2_mock.extras    = types.ModuleType("psycopg2.extras")
     psycopg2_mock.errors    = types.ModuleType("psycopg2.errors")
 
-    # UndefinedTable é usado em validate_db.py
+    # UndefinedTable é usado em scripts/validate_db.py
     psycopg2_mock.errors.UndefinedTable = type(
         "UndefinedTable", (Exception,), {}
     )

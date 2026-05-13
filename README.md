@@ -15,8 +15,9 @@
 | --- | --- | --- |
 | Banco PostgreSQL | `docker-compose.yml` + `database/init/` | Sobe PostgreSQL, pgAdmin e cria as tabelas/views usando os SQLs de inicialização. |
 | Ingestão de dados | `python populate.py` | Busca compostos no ChEMBL, bioatividades, targets, indicações, mecanismos, propriedades ADMET e artigos no PubMed. |
-| Refresh de views | `python refresh.py` | Atualiza as views materializadas usadas por consultas consolidadas. |
-| Validação | `python validate_db.py` | Verifica se o banco tem dados, integridade de FKs, artigos, ADMET e views. |
+| Refresh de views | `python scripts/refresh.py` | Atualiza as views materializadas usadas por consultas consolidadas. |
+| Validação | `python scripts/validate_db.py` | Verifica se o banco tem dados, integridade de FKs, artigos, ADMET e views. |
+| Backfill de abstracts | `python scripts/backfill_abstracts.py` | Preenche abstracts, MeSH terms e keywords para artigos inseridos sem essas informações. |
 | API | `uvicorn api:app --reload --port 8000` | Expõe endpoints HTTP para consumir os dados. |
 | Dashboard | `streamlit run dashboard.py` | Abre uma interface Streamlit local para explorar a base. |
 | Frontend web | `frontend/` | App React/Vite que consome a API FastAPI. |
@@ -32,13 +33,16 @@ chembl-pubmed-db/
 ├── api.py                         # API FastAPI
 ├── dashboard.py                   # Dashboard Streamlit
 ├── populate.py                    # Comando principal de ingestão
-├── refresh.py                     # Atualiza views materializadas
-├── validate_db.py                 # Valida saúde/integridade do banco
 ├── scheduler.py                   # Agenda ou executa o pipeline completo
 ├── migrate_to_supabase.py         # Migração para PostgreSQL remoto/Supabase
+├── scripts/
+│   ├── refresh.py                 # Atualiza views materializadas
+│   ├── validate_db.py             # Valida saúde/integridade do banco
+│   └── backfill_abstracts.py      # Preenche abstracts/MeSH para artigos incompletos
 ├── populate/                      # Implementação da ingestão e clientes externos
-├── database/init/                 # SQLs executados na criação do banco Docker
-├── config/pgadmin_servers.json    # Configuração automática do pgAdmin
+├── database/
+│   ├── init/                      # SQLs executados na criação do banco Docker
+│   └── pgadmin_servers.json       # Configuração automática do pgAdmin
 ├── frontend/                      # Frontend React/Vite
 ├── docs/                          # Documentação complementar
 ├── tests/                         # Testes unitários
@@ -133,25 +137,25 @@ A lista padrão de compostos vem da tabela `seed_compounds` (ver [seção 15](#1
 ### Passo 6 — Validar se os dados foram carregados corretamente
 
 ```bash
-python validate_db.py
+python scripts/validate_db.py
 ```
 
 Se quiser parar no primeiro erro crítico:
 
 ```bash
-python validate_db.py --fail-fast
+python scripts/validate_db.py --fail-fast
 ```
 
 ### Passo 7 — Atualizar views materializadas
 
 ```bash
-python refresh.py
+python scripts/refresh.py
 ```
 
 Para ver o status das views:
 
 ```bash
-python refresh.py --status
+python scripts/refresh.py --status
 ```
 
 ### Passo 8 — Rodar a API
@@ -232,33 +236,41 @@ python populate.py --force
 
 ```bash
 # Atualizar todas as views materializadas
-python refresh.py
+python scripts/refresh.py
 
 # Atualizar apenas uma view específica
-python refresh.py --view profile
-python refresh.py --view articles
-python refresh.py --view full
+python scripts/refresh.py --view profile
+python scripts/refresh.py --view articles
+python scripts/refresh.py --view full
 
 # Mostrar linhas e data de refresh das views
-python refresh.py --status
+python scripts/refresh.py --status
 ```
 
 ### Validar dados
 
 ```bash
 # Relatório completo
-python validate_db.py
+python scripts/validate_db.py
 
 # Rodar apenas uma seção
-python validate_db.py --section compounds
-python validate_db.py --section articles
-python validate_db.py --section indications
-python validate_db.py --section admet
-python validate_db.py --section relations
-python validate_db.py --section views
+python scripts/validate_db.py --section compounds
+python scripts/validate_db.py --section articles
+python scripts/validate_db.py --section indications
+python scripts/validate_db.py --section admet
+python scripts/validate_db.py --section relations
+python scripts/validate_db.py --section views
 
 # Parar no primeiro FAIL crítico
-python validate_db.py --fail-fast
+python scripts/validate_db.py --fail-fast
+```
+
+### Backfill de abstracts e MeSH
+
+Para artigos inseridos sem abstract ou MeSH terms (ingestão antiga):
+
+```bash
+python scripts/backfill_abstracts.py
 ```
 
 ---
@@ -352,8 +364,8 @@ python populate.py
 O scheduler executa a sequência:
 
 1. `populate.py`;
-2. `refresh.py`;
-3. `validate_db.py`.
+2. `scripts/refresh.py`;
+3. `scripts/validate_db.py`.
 
 Comandos:
 
@@ -434,7 +446,7 @@ pytest tests/ -v -k "db"
 pytest tests/ --tb=short
 
 # Verificar sintaxe/imports Python
-python -m compileall api.py dashboard.py refresh.py validate_db.py populate.py scheduler.py migrate_to_supabase.py populate tests
+python -m compileall api.py dashboard.py populate.py scheduler.py migrate_to_supabase.py scripts/ populate/ tests/
 
 # Build do frontend
 npm --prefix frontend install
@@ -453,10 +465,10 @@ docker compose up -d
 python populate.py
 
 # 3. Validar banco
-python validate_db.py
+python scripts/validate_db.py
 
 # 4. Atualizar views
-python refresh.py
+python scripts/refresh.py
 
 # 5. Subir API
 uvicorn api:app --reload --port 8000

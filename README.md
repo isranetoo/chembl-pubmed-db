@@ -108,13 +108,27 @@ O Docker executa automaticamente os arquivos em `database/init/` quando o volume
 
 > Se você já tinha subido o banco antes e quer recriar tudo do zero, use `docker compose down -v` e depois `docker compose up -d`. Atenção: isso apaga os dados locais do volume Docker.
 
+### Passo 4.5 — Registrar o baseline e aplicar migrations restantes
+
+O Docker já criou o schema do baseline (01..08) via `database/init/*.sql`, então **marque só o baseline como aplicado** e depois rode as migrations seguintes (atualmente: a tabela `seed_compounds` da migration 0002):
+
+```bash
+alembic stamp 0001_baseline
+alembic upgrade head
+```
+
+- `stamp 0001_baseline` grava a versão do baseline na tabela `alembic_version` **sem executar SQL** — evita recriar tabelas que já existem.
+- `upgrade head` aplica as migrations criadas depois do baseline (cria `seed_compounds` e popula com 51 compostos).
+
+Pular `upgrade head` faz `populate.py` falhar com erro claro: "Tabela `seed_compounds` não existe". Consulte a [seção 13](#13-migrations-com-alembic) para o fluxo completo.
+
 ### Passo 5 — Popular o banco com ChEMBL + PubMed
 
 ```bash
 python populate.py
 ```
 
-Esse comando roda de forma incremental: ele evita reprocessar compostos que já estão completos, a menos que você use `--force`.
+A lista padrão de compostos vem da tabela `seed_compounds` (ver [seção 15](#15-gerenciar-a-lista-de-compostos-populares)). Por padrão, o comando roda de forma incremental e evita reprocessar compostos que já estão completos — use `--force` para forçar.
 
 ### Passo 6 — Validar se os dados foram carregados corretamente
 
@@ -299,7 +313,7 @@ A aplicação resolve a conexão nesta ordem:
 
 1. `DATABASE_URL`, útil para Supabase, Railway, Render, Heroku ou outro PaaS;
 2. variáveis individuais `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`;
-3. defaults locais do Docker: `localhost:5432`, banco `chembl_pubmed`, usuário `admin`, senha `admin123`.
+3. defaults locais do Docker: `localhost:5432`, banco `chembl_pubmed`, usuário `admin`, senha `admin123` — **apenas em desenvolvimento** (ver seção 14).
 
 ### Usar Docker local sem variáveis
 
@@ -452,3 +466,175 @@ cd frontend
 npm install
 npm run dev
 ```
+
+---
+
+## 13. Migrations com Alembic
+
+A partir do baseline `0001_baseline`, toda alteração de schema deve virar uma migration Alembic. Os arquivos em `database/init/` continuam funcionando para a criação inicial via Docker — o baseline apenas garante que o estado atual fique versionado e que mudanças futuras sejam auditáveis.
+
+### Estrutura
+
+```txt
+alembic.ini                          # config
+migrations/
+├── env.py                           # lê DB_CONFIG de populate/config.py
+├── script.py.mako                   # template de novas migrations
+└── versions/
+    └── 0001_baseline.py             # captura os 8 SQLs de database/init/
+```
+
+### Fluxos
+
+**Banco que já tem o schema (criado via `docker compose up -d`)**:
+
+```bash
+alembic stamp head   # só marca o baseline como aplicado, NÃO executa SQL
+alembic current      # confirma a revisão atual
+```
+
+**Banco totalmente vazio (Postgres novo, sem Docker init)**:
+
+```bash
+alembic upgrade head # executa os SQLs do baseline em ordem
+```
+
+**Criar uma nova migration**:
+
+```bash
+alembic revision -m "add table foo"
+# edita migrations/versions/<hash>_add_table_foo.py
+alembic upgrade head
+```
+
+**Reverter a última migration** (não vale para o baseline):
+
+```bash
+alembic downgrade -1
+```
+
+**Inspeção**:
+
+```bash
+alembic current      # versão aplicada no banco
+alembic history      # histórico de revisões
+alembic heads        # lista heads (deve ser sempre 1)
+```
+
+### Apontar para Supabase ou outro PostgreSQL
+
+O mesmo mecanismo do resto do projeto: definir `DATABASE_URL` antes do comando.
+
+```powershell
+$env:DATABASE_URL="postgresql://usuario:senha@host:5432/banco?sslmode=require"
+alembic upgrade head
+```
+
+### Boas práticas
+
+- Toda alteração de schema vira uma migration nova — não edite `0001_baseline.py`.
+- O downgrade do baseline está bloqueado (`NotImplementedError`); para zerar tudo, derrube o volume Docker.
+- Após escrever uma migration, rode `alembic upgrade head --sql` para inspecionar o SQL gerado antes de aplicar em produção.
+
+---
+
+## 14. Variáveis de ambiente de produção
+
+Para evitar que defaults inseguros vazem para staging/produção, a API e o pipeline aplicam dois gates obrigatórios fora de desenvolvimento.
+
+### `APP_ENV`
+
+Controla qual cenário está ativo. Valores reconhecidos como dev: `development`, `dev`, `local`, `test`. Qualquer outro valor é tratado como produção/staging.
+
+```bash
+APP_ENV=production
+```
+
+- **Default** (`development`): defaults locais Docker (`localhost`/`admin`/`admin123`) e CORS de `localhost:5173/8501` são aplicados automaticamente.
+- **`production`**: a inicialização falha (`RuntimeError`) se `DATABASE_URL` ou `DB_HOST/...` não estiver definida — evita conectar acidentalmente em outro Postgres com a senha conhecida `admin123`.
+
+### `CORS_ALLOW_ORIGINS`
+
+Lista separada por vírgula de origens permitidas pelo middleware CORS.
+
+```bash
+CORS_ALLOW_ORIGINS="https://app.example.com,https://admin.example.com"
+```
+
+- **Default em dev**: `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:8501`.
+- **Em produção**: a inicialização falha se essa variável não estiver definida — evita publicar a API com `allow_origins=["*"]`.
+
+### Receita mínima para produção
+
+```bash
+export APP_ENV=production
+export DATABASE_URL="postgresql://usuario:senha@host:5432/banco?sslmode=require"
+export CORS_ALLOW_ORIGINS="https://app.example.com"
+uvicorn api:app --host 0.0.0.0 --port 8000
+```
+
+Se algum dos três faltar, a API recusa subir com mensagem explicando o que falta.
+
+---
+
+## 15. Gerenciar a lista de compostos populares
+
+A lista que o `populate.py` consome por padrão vive na tabela `seed_compounds` (criada pela migration `0002_seed_compounds`). Adicionar, desativar ou reativar um composto é uma operação de banco — não precisa de PR/deploy.
+
+### Estrutura
+
+```sql
+SELECT chembl_id, common_name, category, is_active FROM seed_compounds;
+```
+
+| Coluna       | Função                                                       |
+| ------------ | ------------------------------------------------------------ |
+| `chembl_id`  | Identificador no ChEMBL (PK).                                |
+| `common_name`| Nome popular usado nos logs e nas buscas PubMed iniciais.    |
+| `category`   | Agrupamento terapêutico (Oncologia, Cardiovascular…).        |
+| `is_active`  | `populate.py` só lê linhas com `TRUE`.                       |
+| `added_at`   | Timestamp automático.                                        |
+
+### Receitas
+
+**Adicionar um composto:**
+
+```sql
+INSERT INTO seed_compounds (chembl_id, common_name, category)
+VALUES ('CHEMBL999', 'Foo', 'Oncologia');
+```
+
+A próxima execução de `python populate.py` já inclui o composto.
+
+**Desativar (sem perder histórico):**
+
+```sql
+UPDATE seed_compounds SET is_active = FALSE WHERE chembl_id = 'CHEMBL999';
+```
+
+**Reativar:**
+
+```sql
+UPDATE seed_compounds SET is_active = TRUE WHERE chembl_id = 'CHEMBL999';
+```
+
+**Listar por categoria:**
+
+```sql
+SELECT chembl_id, common_name
+FROM seed_compounds
+WHERE category = 'Oncologia' AND is_active = TRUE
+ORDER BY common_name;
+```
+
+### Variantes via CLI já existentes
+
+O `populate.py` continua aceitando overrides ad-hoc sem mexer na tabela:
+
+```bash
+python populate.py --only CHEMBL25 --only CHEMBL521   # ignora tabela, roda só esses dois
+python populate.py --add CHEMBL999                    # adiciona à lista lida da tabela
+```
+
+Use a tabela para a lista permanente; use as flags para experimentos pontuais.
+

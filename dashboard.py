@@ -29,6 +29,8 @@ import psycopg2
 import psycopg2.extras
 import streamlit as st
 
+from populate.config import DB_CONFIG
+
 # ============================================================
 # Configuração da página
 # ============================================================
@@ -43,14 +45,8 @@ st.set_page_config(
 # ============================================================
 # Conexão com o banco
 # ============================================================
-
-DB_CONFIG = {
-    "host":     "localhost",
-    "port":     5432,
-    "dbname":   "chembl_pubmed",
-    "user":     "admin",
-    "password": "admin123",
-}
+# DB_CONFIG é resolvido em populate/config.py a partir de DATABASE_URL,
+# variáveis individuais (DB_HOST/DB_PORT/...) ou defaults do Docker local.
 
 
 @st.cache_resource

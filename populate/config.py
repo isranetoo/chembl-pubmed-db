@@ -89,10 +89,31 @@ LOG_FILE: Path = _log_file
 import os
 from urllib.parse import urlparse
 
+# Ambientes considerados "dev" — defaults inseguros (admin/admin123) só funcionam aqui.
+# Setar APP_ENV=production (ou staging/prod) força configuração explícita do banco.
+_DEV_ENVS = {"development", "dev", "local", "test"}
+_INDIVIDUAL_DB_VARS = ("DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_SSLMODE")
+
+
+def app_env() -> str:
+    """Retorna APP_ENV em lower-case; default 'development'."""
+    return os.environ.get("APP_ENV", "development").strip().lower()
+
+
+def is_dev() -> bool:
+    """True se APP_ENV indica ambiente de desenvolvimento/teste."""
+    return app_env() in _DEV_ENVS
+
+
 def _resolve_db_config() -> dict:
     """
     Resolve a configuração do banco a partir de variáveis de ambiente.
     Retorna um dict compatível com psycopg2.connect(**config).
+
+    Estratégia de segurança:
+      - Em ambiente NÃO-dev, exige DATABASE_URL ou alguma var individual.
+      - Os defaults locais (admin/admin123/localhost) só são aplicados em
+        APP_ENV=development|dev|local|test. Caso contrário levanta RuntimeError.
     """
     database_url = os.environ.get("DATABASE_URL", "").strip()
 
@@ -120,7 +141,19 @@ def _resolve_db_config() -> dict:
 
         return config
 
-    # ── Modo 2: variáveis individuais + defaults locais ──────
+    # ── Modo 2: variáveis individuais ─────────────────────────
+    any_individual_set = any(os.environ.get(v) for v in _INDIVIDUAL_DB_VARS)
+
+    if not any_individual_set and not is_dev():
+        raise RuntimeError(
+            f"Configuração de banco ausente: APP_ENV={app_env()!r} mas nenhuma "
+            "das variáveis DATABASE_URL ou DB_HOST/DB_PORT/DB_NAME/DB_USER/"
+            "DB_PASSWORD/DB_SSLMODE foi definida. Os defaults locais "
+            "(localhost/admin/admin123) só funcionam em APP_ENV="
+            f"{sorted(_DEV_ENVS)}. Defina DATABASE_URL=postgresql://... ou as "
+            "variáveis individuais antes de iniciar o serviço."
+        )
+
     return {
         "host":     os.environ.get("DB_HOST",     "localhost"),
         "port":     int(os.environ.get("DB_PORT", "5432")),
@@ -150,78 +183,13 @@ MAX_ARTICLES = 5   # artigos buscados no PubMed
 
 # ============================================================
 # Compostos populares
-# Formato: (chembl_id, nome_comum)
-# IDs verificados diretamente no ChEMBL (max_phase=4)
 # ============================================================
-
-POPULAR_COMPOUNDS = [
-    # ── Analgésicos / Anti-inflamatórios ──────────────────────
-    ("CHEMBL25",       "Aspirin"),          # NSAID / antiagregante plaquetário
-    ("CHEMBL521",      "Ibuprofen"),        # NSAID
-    ("CHEMBL112",      "Paracetamol"),      # analgésico / antitérmico
-    ("CHEMBL154",      "Naproxen"),         # NSAID
-    ("CHEMBL599",      "Meloxicam"),        # NSAID inibidor preferencial de COX-2
-    ("CHEMBL1237044",  "Tramadol"),         # opioide atípico / inibidor de recaptação
-
-    # ── Sistema Nervoso Central ────────────────────────────────
-    ("CHEMBL113",      "Caffeine"),         # estimulante (inibidor de adenosina)
-    ("CHEMBL12",       "Diazepam"),         # benzodiazepínico
-    ("CHEMBL661",      "Alprazolam"),       # benzodiazepínico (ansiolítico)
-    ("CHEMBL70",       "Morphine"),         # opioide
-    ("CHEMBL41",       "Fluoxetine"),       # antidepressivo SSRI
-    ("CHEMBL809",      "Sertraline"),       # antidepressivo SSRI
-    ("CHEMBL1009",     "Levodopa"),         # precursor de dopamina (Parkinson)
-    ("CHEMBL502",      "Donepezil"),        # inibidor de acetilcolinesterase (Alzheimer)
-    ("CHEMBL940",      "Gabapentin"),       # anticonvulsivante / gabaminético
-    ("CHEMBL1059",     "Pregabalin"),       # anticonvulsivante / gabaminético
-    ("CHEMBL54",       "Haloperidol"),      # antipsicótico típico (bloq. D2)
-    ("CHEMBL716",      "Quetiapine"),       # antipsicótico atípico
-    ("CHEMBL911",      "Zolpidem"),         # hipnótico não-benzodiazepínico
-    ("CHEMBL1200826",  "Lithium carbonate"),# estabilizador de humor (transt. bipolar)
-
-    # ── Cardiovascular ────────────────────────────────────────
-    ("CHEMBL1464",     "Warfarin"),         # anticoagulante
-    ("CHEMBL1491",     "Amlodipine"),       # bloqueador de canal de cálcio
-    ("CHEMBL193",      "Nifedipine"),       # bloqueador de canal de cálcio (DHP)
-    ("CHEMBL1237",     "Lisinopril"),       # inibidor da ECA
-    ("CHEMBL578",      "Enalapril"),        # inibidor da ECA (pró-fármaco)
-    ("CHEMBL191",      "Losartan"),         # antagonista receptor angiotensina II
-    ("CHEMBL1069",     "Valsartan"),        # antagonista receptor angiotensina II
-    ("CHEMBL1064",     "Simvastatin"),      # estatina (HMG-CoA reductase)
-    ("CHEMBL1487",     "Atorvastatin"),     # estatina (HMG-CoA reductase)
-    ("CHEMBL192",      "Sildenafil"),       # inibidor PDE5
-    ("CHEMBL27",       "Propranolol"),      # beta-bloqueador não seletivo
-    ("CHEMBL1751",     "Digoxin"),          # glicosídeo cardíaco (inib. Na/K-ATPase)
-
-    # ── Metabólico / Endócrino ────────────────────────────────
-    ("CHEMBL1431",     "Metformin"),        # antidiabético (biguanida)
-    ("CHEMBL384467",   "Dexamethasone"),    # corticosteroide
-    ("CHEMBL1422",     "Sitagliptin"),      # inibidor de DPP-4
-    ("CHEMBL2107830",  "Empagliflozin"),    # inibidor SGLT-2
-
-    # ── Gastrointestinal ──────────────────────────────────────
-    ("CHEMBL1503",     "Omeprazole"),       # inibidor de bomba de prótons
-    ("CHEMBL1502",     "Pantoprazole"),     # inibidor de bomba de prótons
-
-    # ── Antimicrobianos ───────────────────────────────────────
-    ("CHEMBL1082",     "Amoxicillin"),      # antibiótico betalactâmico
-    ("CHEMBL8",        "Ciprofloxacin"),    # antibiótico fluoroquinolona
-    ("CHEMBL1433",     "Doxycycline"),      # antibiótico tetraciclínico
-    ("CHEMBL262777",   "Vancomycin"),       # glicopeptídeo (infecções por MRSA)
-
-    # ── Antivirais ────────────────────────────────────────────
-    ("CHEMBL1229",     "Oseltamivir"),      # antiviral (inibidor de neuraminidase)
-    ("CHEMBL1486",     "Tenofovir"),        # antirretroviral (inibidor de TN-RT)
-    ("CHEMBL223228",   "Efavirenz"),        # antirretroviral (inibidor não-nucleosídeo de RT)
-
-    # ── Oncologia ─────────────────────────────────────────────
-    ("CHEMBL83",       "Tamoxifen"),        # antagonista receptor de estrogênio
-    ("CHEMBL941",      "Imatinib"),         # inibidor de tirosina quinase (BCR-ABL)
-    ("CHEMBL34259",    "Methotrexate"),     # antimetabólito (inibidor de DHFR)
-    ("CHEMBL1773",     "Capecitabine"),     # pró-fármaco do 5-fluorouracil
-    ("CHEMBL1351",     "Carboplatin"),      # agente alquilante (derivado de platina)
-
-    # ── Respiratório ──────────────────────────────────────────
-    ("CHEMBL1900528",  "Tiotropium"),       # anticolinérgico de longa ação (DPOC)
-    ("CHEMBL1473",     "Fluticasone"),      # corticosteroide inalatório
-]
+# A lista vive na tabela `seed_compounds` no banco (migration
+# 0002_seed_compounds). Use `populate.db.load_popular_compounds()`
+# para lê-la em runtime. Para adicionar/desativar um composto:
+#
+#     INSERT INTO seed_compounds (chembl_id, common_name, category)
+#     VALUES ('CHEMBL999', 'Foo', 'Oncologia');
+#
+#     UPDATE seed_compounds SET is_active = FALSE
+#     WHERE chembl_id = 'CHEMBL999';

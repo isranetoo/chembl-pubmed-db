@@ -7,6 +7,7 @@ import Loader from '../components/Loader'
 import Table from '../components/Table'
 import Pill from '../components/Pill'
 import EmptyState from '../components/EmptyState'
+import HistopathologyTab from '../components/HistopathologyTab'
 
 const tabs = [
   { key: 'overview', label: 'Overview' },
@@ -15,6 +16,7 @@ const tabs = [
   { key: 'mechanisms', label: 'Mechanisms' },
   { key: 'bioactivities', label: 'Bioactivities' },
   { key: 'articles', label: 'Articles' },
+  { key: 'histopathology', label: 'Histopatologia' },
 ]
 
 export default function CompoundDetailPage() {
@@ -187,6 +189,12 @@ export default function CompoundDetailPage() {
               emptyMessage="Nenhuma bioatividade encontrada."
             />
           )}
+        </Section>
+      )}
+
+      {tab === 'histopathology' && (
+        <Section title="Histopatologia (Owkin / TCGA)">
+          <HistopathologyTab chemblId={chemblId} />
         </Section>
       )}
 

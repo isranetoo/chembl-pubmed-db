@@ -17,8 +17,8 @@ from typing import Optional
 
 import requests
 
-from config import CHEMBL_BASE, MAX_BIOACT
-from http_retry import get_with_retry
+from .config import CHEMBL_BASE, MAX_BIOACT
+from .http_retry import get_with_retry
 
 log = logging.getLogger(__name__)
 

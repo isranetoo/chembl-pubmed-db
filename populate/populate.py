@@ -31,8 +31,8 @@ import time
 
 import psycopg2
 
-from config import DB_CONFIG, POPULAR_COMPOUNDS, LOG_FILE
-from chembl_client import (
+from .config import DB_CONFIG, LOG_FILE
+from .chembl_client import (
     fetch_compound,
     fetch_bioactivities,
     fetch_target,
@@ -40,9 +40,10 @@ from chembl_client import (
     fetch_mechanisms,
     to_numeric,
 )
-from pubmed_client import search_pubmed, fetch_articles
-from db import (
+from .pubmed_client import search_pubmed, fetch_articles
+from .db import (
     get_compound_status,
+    load_popular_compounds,
     upsert_compound,
     upsert_target,
     insert_bioactivity,
@@ -317,7 +318,8 @@ def main():
         # --only substitui a lista padrão; --add ainda acrescenta extras
         compounds = [(cid.upper(), cid.upper()) for cid in args.only]
     else:
-        compounds = list(POPULAR_COMPOUNDS)
+        # Lê da tabela seed_compounds (migration 0002_seed_compounds).
+        compounds = list(load_popular_compounds())
 
     # --add sempre acrescenta (independente de --only)
     for cid in args.add:

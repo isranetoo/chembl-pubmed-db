@@ -13,8 +13,45 @@ Convenções:
 import logging
 from typing import Optional
 
-from chembl_client import to_numeric
-from config import DB_CONFIG
+import psycopg2
+
+from .chembl_client import to_numeric
+from .config import DB_CONFIG
+
+
+def get_conn():
+    """Return a new psycopg2 connection using DB_CONFIG."""
+    return psycopg2.connect(**DB_CONFIG)
+
+
+def load_popular_compounds() -> list:
+    """
+    Lê a lista de compostos seed da tabela `seed_compounds` (apenas is_active).
+
+    Retorna lista de tuplas (chembl_id, common_name) — mesma forma da antiga
+    constante `POPULAR_COMPOUNDS` em populate/config.py, para que o
+    `populate.py` continue funcionando sem mudanças além do import.
+
+    Levanta `RuntimeError` se a tabela ainda não foi criada, apontando para
+    a migration Alembic responsável (0002_seed_compounds).
+    """
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT chembl_id, common_name "
+                "FROM seed_compounds "
+                "WHERE is_active = TRUE "
+                "ORDER BY category, common_name"
+            )
+            return [(r[0], r[1]) for r in cur.fetchall()]
+    except psycopg2.errors.UndefinedTable as exc:
+        raise RuntimeError(
+            "Tabela `seed_compounds` não existe no banco. "
+            "Aplique a migration: `alembic upgrade head` "
+            "(ela cria a tabela e popula com a lista padrão de 51 compostos)."
+        ) from exc
+
 
 log = logging.getLogger(__name__)
 

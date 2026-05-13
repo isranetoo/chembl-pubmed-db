@@ -33,6 +33,7 @@ Endpoints:
 """
 
 import json
+import os
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
@@ -43,17 +44,32 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from populate.config import DB_CONFIG, is_dev
+from schemas import (
+    AdmetResponse,
+    ArticleDetail,
+    ArticleListItem,
+    BioactivitiesResponse,
+    CompoundArticlesResponse,
+    CompoundDetail,
+    CompoundListItem,
+    HealthResponse,
+    IndicationsResponse,
+    MechanismsResponse,
+    Page,
+    RootResponse,
+    SearchResponse,
+    StatsResponse,
+    TargetListItem,
+)
+
 # ============================================================
 # Configuração do banco
 # ============================================================
-
-DB_CONFIG = {
-    "host":     "localhost",
-    "port":     5432,
-    "dbname":   "chembl_pubmed",
-    "user":     "admin",
-    "password": "admin123",
-}
+# DB_CONFIG é resolvido em populate/config.py a partir de:
+#   1. DATABASE_URL  (Supabase, Railway, Render, Heroku...)
+#   2. variáveis individuais DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DB_SSLMODE
+#   3. defaults locais do Docker (localhost / chembl_pubmed / admin / admin123)
 
 # Pool de conexões — reutiliza conexões entre requests
 _pool: Optional[psycopg2.pool.ThreadedConnectionPool] = None
@@ -124,9 +140,34 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# ============================================================
+# CORS
+# ============================================================
+# Origens permitidas vêm de CORS_ALLOW_ORIGINS (lista separada por vírgula).
+# Em ambiente NÃO-dev a variável é OBRIGATÓRIA — refuse-by-default evita
+# expor a API publicamente por acidente.
+_DEV_CORS_DEFAULT = [
+    "http://localhost:5173",   # Vite (frontend React)
+    "http://127.0.0.1:5173",
+    "http://localhost:8501",   # Streamlit dashboard, se chamar a API
+]
+
+_cors_env = os.environ.get("CORS_ALLOW_ORIGINS", "").strip()
+if _cors_env:
+    _cors_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+elif is_dev():
+    _cors_origins = _DEV_CORS_DEFAULT
+else:
+    raise RuntimeError(
+        "CORS_ALLOW_ORIGINS não foi definido em ambiente não-dev. "
+        "Defina a variável com a lista de origens permitidas, ex: "
+        "CORS_ALLOW_ORIGINS='https://app.example.com,https://admin.example.com'. "
+        "Use APP_ENV=development para liberar localhost automaticamente."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_methods=["GET"],
     allow_headers=["*"],
 )
@@ -188,7 +229,7 @@ def _resolve_compound_id(chembl_id: str) -> str:
 # Rotas — raiz e saúde
 # ============================================================
 
-@app.get("/", tags=["geral"], summary="Informações da API")
+@app.get("/", tags=["geral"], summary="Informações da API", response_model=RootResponse)
 def root():
     return {
         "name":    "DrugXpert API",
@@ -212,7 +253,7 @@ def root():
     }
 
 
-@app.get("/health", tags=["geral"], summary="Status do banco")
+@app.get("/health", tags=["geral"], summary="Status do banco", response_model=HealthResponse)
 def health():
     try:
         row = db_one("SELECT COUNT(*) AS compounds FROM compounds")
@@ -228,7 +269,12 @@ def health():
 # Rotas — compostos
 # ============================================================
 
-@app.get("/compounds", tags=["compostos"], summary="Lista compostos")
+@app.get(
+    "/compounds",
+    tags=["compostos"],
+    summary="Lista compostos",
+    response_model=Page[CompoundListItem],
+)
 def list_compounds(
     q:          Optional[str]   = Query(None,  description="Filtro por nome (parcial, case-insensitive)"),
     min_qed:    Optional[float] = Query(None,  description="QED mínimo (0–1)", ge=0, le=1),
@@ -304,7 +350,12 @@ def list_compounds(
     return _paginate(sql, params, page, size)
 
 
-@app.get("/compounds/{chembl_id}", tags=["compostos"], summary="Composto completo")
+@app.get(
+    "/compounds/{chembl_id}",
+    tags=["compostos"],
+    summary="Composto completo",
+    response_model=CompoundDetail,
+)
 def get_compound(chembl_id: str):
     row = db_one("""
         SELECT
@@ -326,7 +377,12 @@ def get_compound(chembl_id: str):
     return row
 
 
-@app.get("/compounds/{chembl_id}/admet", tags=["compostos"], summary="Propriedades ADMET")
+@app.get(
+    "/compounds/{chembl_id}/admet",
+    tags=["compostos"],
+    summary="Propriedades ADMET",
+    response_model=AdmetResponse,
+)
 def get_compound_admet(chembl_id: str):
     compound_id = _resolve_compound_id(chembl_id)
 
@@ -367,7 +423,12 @@ def get_compound_admet(chembl_id: str):
     return {"chembl_id": chembl_id.upper(), **row}
 
 
-@app.get("/compounds/{chembl_id}/indications", tags=["compostos"], summary="Indicações terapêuticas")
+@app.get(
+    "/compounds/{chembl_id}/indications",
+    tags=["compostos"],
+    summary="Indicações terapêuticas",
+    response_model=IndicationsResponse,
+)
 def get_compound_indications(
     chembl_id: str,
     min_phase: Optional[float] = Query(None, description="Fase clínica mínima (ex: 4 = aprovado)"),
@@ -408,7 +469,12 @@ def get_compound_indications(
     return result
 
 
-@app.get("/compounds/{chembl_id}/mechanisms", tags=["compostos"], summary="Mecanismos de ação")
+@app.get(
+    "/compounds/{chembl_id}/mechanisms",
+    tags=["compostos"],
+    summary="Mecanismos de ação",
+    response_model=MechanismsResponse,
+)
 def get_compound_mechanisms(chembl_id: str):
     compound_id = _resolve_compound_id(chembl_id)
 
@@ -432,7 +498,12 @@ def get_compound_mechanisms(chembl_id: str):
     return {"chembl_id": chembl_id.upper(), "total": len(rows), "items": rows}
 
 
-@app.get("/compounds/{chembl_id}/bioactivities", tags=["compostos"], summary="Bioatividades")
+@app.get(
+    "/compounds/{chembl_id}/bioactivities",
+    tags=["compostos"],
+    summary="Bioatividades",
+    response_model=BioactivitiesResponse,
+)
 def get_compound_bioactivities(
     chembl_id:     str,
     activity_type: Optional[str] = Query(None, description="Tipo: IC50, Ki, EC50..."),
@@ -467,7 +538,12 @@ def get_compound_bioactivities(
     return result
 
 
-@app.get("/compounds/{chembl_id}/articles", tags=["compostos"], summary="Artigos do PubMed")
+@app.get(
+    "/compounds/{chembl_id}/articles",
+    tags=["compostos"],
+    summary="Artigos do PubMed",
+    response_model=CompoundArticlesResponse,
+)
 def get_compound_articles(
     chembl_id:    str,
     only_abstract: bool          = Query(False, description="Só artigos com abstract"),
@@ -518,7 +594,12 @@ def get_compound_articles(
 # Rotas — artigos
 # ============================================================
 
-@app.get("/articles", tags=["artigos"], summary="Lista artigos")
+@app.get(
+    "/articles",
+    tags=["artigos"],
+    summary="Lista artigos",
+    response_model=Page[ArticleListItem],
+)
 def list_articles(
     q:            Optional[str] = Query(None, description="Busca no título e abstract"),
     journal:      Optional[str] = Query(None, description="Filtro por periódico"),
@@ -573,7 +654,12 @@ def list_articles(
     return result
 
 
-@app.get("/articles/{pmid}", tags=["artigos"], summary="Artigo completo por PMID")
+@app.get(
+    "/articles/{pmid}",
+    tags=["artigos"],
+    summary="Artigo completo por PMID",
+    response_model=ArticleDetail,
+)
 def get_article(pmid: str):
     row = db_one("""
         SELECT
@@ -608,7 +694,12 @@ def get_article(pmid: str):
 # Rotas — alvos
 # ============================================================
 
-@app.get("/targets", tags=["alvos"], summary="Lista alvos biológicos")
+@app.get(
+    "/targets",
+    tags=["alvos"],
+    summary="Lista alvos biológicos",
+    response_model=Page[TargetListItem],
+)
 def list_targets(
     q:        Optional[str] = Query(None, description="Filtro por nome"),
     organism: Optional[str] = Query(None, description="Filtro por organismo"),
@@ -644,7 +735,12 @@ def list_targets(
 # Rota — busca full-text unificada
 # ============================================================
 
-@app.get("/search", tags=["busca"], summary="Busca full-text unificada")
+@app.get(
+    "/search",
+    tags=["busca"],
+    summary="Busca full-text unificada",
+    response_model=SearchResponse,
+)
 def search(
     q:      str           = Query(...,  description="Termo de busca (ex: aspirin inflammation)"),
     source: Optional[str] = Query(None, description="Filtrar por fonte: compound | article | target"),
@@ -732,7 +828,12 @@ def search(
 # Rota — estatísticas
 # ============================================================
 
-@app.get("/stats", tags=["geral"], summary="Estatísticas do banco")
+@app.get(
+    "/stats",
+    tags=["geral"],
+    summary="Estatísticas do banco",
+    response_model=StatsResponse,
+)
 def stats():
     row = db_one("""
         SELECT
@@ -752,6 +853,14 @@ def stats():
             (SELECT MAX(pub_year) FROM articles)                AS latest_article_year
     """)
     return row
+
+
+# ============================================================
+# Rotas — histopatologia (Owkin / TCGA)
+# ============================================================
+
+from owkin_routes import create_owkin_routes
+create_owkin_routes(app, db_query, db_one, _resolve_compound_id)
 
 
 # ============================================================

@@ -205,6 +205,43 @@ docker compose up -d
 
 ---
 
+## Descobrir novos compostos com o Scraper
+
+O scraper varre uma faixa de IDs numéricos do ChEMBL (ex: CHEMBL10000 até CHEMBL15000), filtra apenas os que têm nome definido (`pref_name`) e os insere na tabela `seed_compounds`. Depois disso, basta rodar `python populate.py` normalmente — ele pega os novos IDs automaticamente.
+
+### Comandos
+
+```powershell
+# Varrer IDs de CHEMBL10000 até CHEMBL15000 (faixa básica de exemplo)
+python -m populate.scraper --start 10000 --end 15000
+
+# Varrer e atribuir uma categoria específica aos compostos encontrados
+python -m populate.scraper --start 10000 --end 15000 --category "Oncologia"
+
+# Varrer e também exportar um CSV com o resultado (compatível com o scraper antigo)
+python -m populate.scraper --start 10000 --end 15000 --export-csv compostos.csv
+
+# Reduzir a velocidade das requisições (útil se a API do ChEMBL estiver lenta)
+python -m populate.scraper --start 10000 --end 15000 --sleep 0.2
+```
+
+### Fluxo completo ao usar o scraper
+
+```powershell
+# 1. Descobrir novos compostos e inserir na seed_compounds
+python -m populate.scraper --start 10000 --end 15000
+
+# 2. Popular os dados completos (ADMET, bioatividades, mecanismos, PubMed)
+python populate.py
+
+# 3. Atualizar as views
+python scripts/refresh.py
+```
+
+> O scraper usa `ON CONFLICT DO NOTHING` — rodar duas vezes na mesma faixa é seguro e não duplica dados nem sobrescreve categorias editadas manualmente.
+
+---
+
 ## Banco de dados — Local ou Supabase?
 
 O projeto suporta dois fluxos. Escolha o que faz mais sentido para você:
@@ -259,6 +296,21 @@ uvicorn api:app --reload --port 8000   # API conecta no Supabase
 |------|---------------|---------|
 | `tabela seed_compounds não existe` | Migration não aplicada | Rode o Passo 6 |
 | `connection refused` na porta 5432 | Docker não está rodando | Rode o Passo 5 |
-| `ModuleNotFoundError` | Ambiente virtual não ativo | Ative o `.venv` (Passo 3) |
+| `ModuleNotFoundError: No module named 'populate'` | Python não encontra a raiz do projeto ao rodar scripts da pasta `scripts/` | Já corrigido — veja nota abaixo |
+| `ModuleNotFoundError` (outro) | Ambiente virtual não ativo | Ative o `.venv` (Passo 3) |
 | `uvicorn: command not found` | Dependências não instaladas | Rode o Passo 4 |
 | Frontend não carrega dados | API não está rodando | Rode o Passo 10 |
+
+### Nota — `ModuleNotFoundError: No module named 'populate'`
+
+Esse erro acontecia ao rodar qualquer script da pasta `scripts/` (`validate_db.py`, `refresh.py`, `backfill_abstracts.py`) porque o Python adicionava só a pasta `scripts/` ao path — e o pacote `populate` fica na raiz do projeto.
+
+**Já foi corrigido** nos três arquivos. A linha abaixo foi adicionada no topo de cada script, antes de qualquer import do projeto:
+
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+```
+
+Isso sobe um nível (`scripts/` → raiz) e registra a raiz no path do Python antes dos imports, resolvendo o erro. Não é necessário fazer nada — os scripts já funcionam com `python scripts/validate_db.py` a partir da raiz do projeto.

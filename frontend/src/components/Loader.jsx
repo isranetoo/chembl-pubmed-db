@@ -1,8 +1,11 @@
 export default function Loader({ label = 'Carregando...' }) {
   return (
-    <div className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-white/10 bg-white/5 text-sm text-slate-400">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-brand-400" />
-      <p>{label}</p>
+    <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 rounded-2xl glass p-10">
+      <div className="relative w-10 h-10">
+        <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-emerald-400 animate-spin" />
+      </div>
+      <p className="text-sm text-white/40">{label}</p>
     </div>
   )
 }

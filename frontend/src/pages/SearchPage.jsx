@@ -1,85 +1,143 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGlobalSearch } from '../lib/hooks'
-import { PageHeader, Section } from '../components/Shell'
 import Loader from '../components/Loader'
 import EmptyState from '../components/EmptyState'
 import Pill from '../components/Pill'
+import Section from '../components/Section'
 import { formatNumber } from '../lib/utils'
+import { Search, ArrowUpRight, FlaskConical, BookOpen, Crosshair, Sparkles } from 'lucide-react'
+
+const sourceConfig = {
+  compound: { icon: FlaskConical, color: 'emerald', label: 'Composto' },
+  article:  { icon: BookOpen,     color: 'sky',     label: 'Artigo' },
+  target:   { icon: Crosshair,    color: 'violet',  label: 'Target' },
+}
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
-  const [submittedQuery, setSubmittedQuery] = useState('aspirin inflammation')
+  const [submittedQuery, setSubmittedQuery] = useState('')
   const [source, setSource] = useState('')
 
   const { data, isLoading, error } = useGlobalSearch({
     q: submittedQuery,
     source: source || undefined,
-    size: 20,
-    page: 1,
+    size: 20, page: 1,
   })
 
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (query.trim()) setSubmittedQuery(query.trim())
+  }
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Unified search"
-        title="Busca full-text"
-        description="A rota /search é um dos ativos mais valiosos da API. Vale dar destaque visual para ela no produto, porque ela transforma o banco em ferramenta de descoberta."
-      />
+    <div className="space-y-6 pb-8">
+      <div className="animate-fade-in-up">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-400/60 mb-2">Unified Search</p>
+        <h1 className="text-3xl font-bold tracking-tight text-white" style={{ fontFamily: 'Outfit' }}>Busca Full-Text</h1>
+        <p className="mt-2 text-sm text-white/35">Encontre compostos, artigos e targets por relevância.</p>
+      </div>
 
-      <Section title="Buscar">
-        <form
-          className="flex flex-col gap-4 md:flex-row"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (query.trim()) setSubmittedQuery(query.trim())
-          }}
-        >
-          <input
-            className="flex-1 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-sm"
-            placeholder="Ex: aspirin inflammation"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <select className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-4 text-sm" value={source} onChange={(e) => setSource(e.target.value)}>
-            <option value="">Todas as fontes</option>
-            <option value="compound">Somente compounds</option>
-            <option value="article">Somente articles</option>
-            <option value="target">Somente targets</option>
-          </select>
-          <button className="rounded-2xl bg-brand-500 px-5 py-4 text-sm font-medium text-slate-950 hover:bg-brand-400">Buscar</button>
-        </form>
-      </Section>
-
-      <Section title="Resultados">
-        {isLoading ? <Loader label="Executando busca..." /> : null}
-        {error ? <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-red-200">{error.message}</div> : null}
-        {!isLoading && !error && (!data?.items?.length ? <EmptyState description="Nenhum resultado encontrado para essa consulta." /> : (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-400">{formatNumber(data.total)} resultados para “{data.query}”</p>
-            {data.items.map((item) => (
-              <div key={`${item.source}-${item.id}`} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      <Pill className="border-white/10 bg-white/5 text-slate-300">{item.source}</Pill>
-                      <Pill className="border-brand-400/20 bg-brand-500/10 text-brand-200">rank {Number(item.rank || 0).toFixed(3)}</Pill>
-                    </div>
-                    <h3 className="text-lg font-medium text-white">{item.label}</h3>
-                    <p className="mt-1 text-sm text-slate-400">{item.detail || 'Sem detalhe adicional'}</p>
-                  </div>
-                  {item.source === 'compound' ? (
-                    <Link to={`/compounds/${item.id}`} className="rounded-xl border border-white/10 px-3 py-2 text-sm text-white hover:bg-white/5">Abrir composto</Link>
-                  ) : null}
-                </div>
-                {item.highlight ? (
-                  <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-300" dangerouslySetInnerHTML={{ __html: item.highlight }} />
-                ) : null}
+      {/* Search bar */}
+      <div className="animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+        <form onSubmit={handleSubmit} className="relative">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500/[0.08] via-teal-500/[0.05] to-cyan-500/[0.08] border border-white/[0.1] p-1">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25" />
+                <input
+                  className="w-full bg-slate-950/60 backdrop-blur-sm rounded-xl pl-12 pr-4 py-4 text-sm text-white placeholder-white/25 border-0 focus:outline-none focus:ring-0"
+                  placeholder="Buscar compostos, artigos, targets..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
               </div>
+              <select className="bg-slate-950/60 backdrop-blur-sm rounded-xl px-4 py-4 text-sm text-white/60 border-0 focus:outline-none"
+                value={source} onChange={(e) => setSource(e.target.value)}>
+                <option value="">Todas as fontes</option>
+                <option value="compound">Compostos</option>
+                <option value="article">Artigos</option>
+                <option value="target">Targets</option>
+              </select>
+              <button type="submit"
+                className="px-6 py-4 rounded-xl text-sm font-semibold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-400 transition-all hover:shadow-lg hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98]">
+                Buscar
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* Quick suggestions */}
+        {!submittedQuery && (
+          <div className="mt-4 flex flex-wrap gap-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <span className="text-xs text-white/25 py-1.5">Sugestões:</span>
+            {['aspirin', 'inflammation', 'cyclooxygenase', 'diabetes', 'cancer'].map((s) => (
+              <button key={s} onClick={() => { setQuery(s); setSubmittedQuery(s) }}
+                className="px-3 py-1.5 rounded-lg text-xs text-white/40 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:text-white/60 transition-all">
+                {s}
+              </button>
             ))}
           </div>
-        ))}
-      </Section>
+        )}
+      </div>
+
+      {/* Results */}
+      {submittedQuery && (
+        <div className="animate-fade-in">
+          {isLoading ? <Loader label="Buscando..." /> : null}
+          {error ? <div className="glass-card p-5 border-red-500/20 text-red-300 text-sm">{error.message}</div> : null}
+          {!isLoading && !error && (!data?.items?.length ? (
+            <EmptyState title="Sem resultados" description={`Nenhum resultado para "${submittedQuery}".`} />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-white/30">
+                <Sparkles size={14} className="text-emerald-400/50" />
+                <span>{formatNumber(data.total)} resultados para "<span className="text-white/50">{data.query}</span>"</span>
+              </div>
+
+              <div className="space-y-3">
+                {data.items.map((item, i) => {
+                  const cfg = sourceConfig[item.source] || sourceConfig.compound
+                  const Icon = cfg.icon
+                  const colorClasses = {
+                    emerald: 'bg-emerald-500/10 border-emerald-500/10 text-emerald-400',
+                    sky: 'bg-sky-500/10 border-sky-500/10 text-sky-400',
+                    violet: 'bg-violet-500/10 border-violet-500/10 text-violet-400',
+                  }
+
+                  return (
+                    <div key={`${item.source}-${item.id}`} className="glass-card p-5 animate-fade-in-up" style={{ animationDelay: `${i * 0.03}s` }}>
+                      <div className="flex items-start gap-4">
+                        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center flex-shrink-0 ${colorClasses[cfg.color]}`}>
+                          <Icon size={16} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Pill className={`${colorClasses[cfg.color]} text-[10px]`}>{cfg.label}</Pill>
+                            <span className="text-[10px] text-white/20 font-mono">rank {Number(item.rank || 0).toFixed(3)}</span>
+                          </div>
+                          <h3 className="text-sm font-semibold text-white/85">{item.label}</h3>
+                          <p className="text-xs text-white/30 mt-0.5">{item.detail || '—'}</p>
+                          {item.highlight && (
+                            <div className="mt-3 rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 text-xs text-white/35 leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: item.highlight }} />
+                          )}
+                        </div>
+                        {item.source === 'compound' && (
+                          <Link to={`/compounds/${item.id}`}
+                            className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/50 hover:text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all flex-shrink-0">
+                            Abrir <ArrowUpRight size={11} />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

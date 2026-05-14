@@ -73,6 +73,7 @@ def iter_named_molecules(
     start_id: int,
     end_id: int,
     sleep_seconds: float = 0.05,
+    progress_every: int = 25,
 ) -> Iterator[tuple[str, str]]:
     """
     Itera CHEMBL{start_id}..CHEMBL{end_id} (inclusivo nos dois lados).
@@ -80,9 +81,19 @@ def iter_named_molecules(
 
     404 e tratado como "nao existe nesse ID" — apenas pula sem warning.
     Erros de rede sao logados como warning e continuam para o proximo ID.
+
+    A cada `progress_every` IDs processados, emite um log de progresso com
+    contagens parciais, taxa (IDs/s) e ETA. Use progress_every<=0 para silenciar.
     """
     if start_id > end_id:
         raise ValueError("start_id nao pode ser maior que end_id")
+
+    total      = end_id - start_id + 1
+    processed  = 0
+    found      = 0
+    not_found  = 0
+    errors     = 0
+    t_start    = time.monotonic()
 
     session = _create_session()
     try:
@@ -94,28 +105,52 @@ def iter_named_molecules(
                 r = session.get(url, timeout=REQUEST_TIMEOUT)
             except requests.RequestException as exc:
                 log.warning(f"  {cid}: erro de rede ({exc})")
+                errors    += 1
+                processed += 1
                 continue
 
             if r.status_code == 404:
-                continue
-            if not r.ok:
+                not_found += 1
+            elif not r.ok:
                 log.warning(f"  {cid}: HTTP {r.status_code}")
-                continue
+                errors += 1
+            else:
+                try:
+                    mol = r.json()
+                    chembl_id = (mol.get("molecule_chembl_id") or "").strip()
+                    pref_name = (mol.get("pref_name") or "").strip()
+                    if chembl_id and pref_name:
+                        found += 1
+                        log.debug(f"  + {chembl_id}: {pref_name}")
+                        yield chembl_id, pref_name
+                    else:
+                        not_found += 1
+                except ValueError:
+                    log.warning(f"  {cid}: resposta nao-JSON")
+                    errors += 1
 
-            try:
-                mol = r.json()
-            except ValueError:
-                log.warning(f"  {cid}: resposta nao-JSON")
-                continue
+            processed += 1
 
-            chembl_id = (mol.get("molecule_chembl_id") or "").strip()
-            pref_name = (mol.get("pref_name") or "").strip()
-            if chembl_id and pref_name:
-                yield chembl_id, pref_name
+            if progress_every > 0 and processed % progress_every == 0:
+                elapsed = time.monotonic() - t_start
+                rate    = processed / elapsed if elapsed > 0 else 0.0
+                remain  = total - processed
+                eta_s   = remain / rate if rate > 0 else 0.0
+                pct     = 100.0 * processed / total
+                log.info(
+                    f"  progresso: {processed}/{total} ({pct:5.1f}%) | "
+                    f"com_nome={found} | 404/sem_nome={not_found} | erros={errors} | "
+                    f"{rate:.1f} IDs/s | ETA ~{eta_s:5.0f}s"
+                )
 
             time.sleep(sleep_seconds)
     finally:
         session.close()
+        elapsed = time.monotonic() - t_start
+        log.info(
+            f"  fim do scrape: {processed}/{total} IDs em {elapsed:.1f}s "
+            f"| com_nome={found} | 404/sem_nome={not_found} | erros={errors}"
+        )
 
 
 def upsert_seed_compounds(
@@ -127,12 +162,18 @@ def upsert_seed_compounds(
     nao sobrescreve `common_name`/`category` de linhas existentes (preserva
     edicoes manuais e a categorizacao mais especifica do seed inicial).
 
-    Retorna {"inserted": int, "kept": int, "total": int}.
+    Apos o upsert, faz um SELECT confirmatorio para garantir que todos os
+    chembl_ids do lote estao realmente persistidos no banco.
+
+    Retorna {"inserted": int, "kept": int, "total": int, "verified": int,
+    "missing": list[str]}.
     """
     if not rows:
-        return {"inserted": 0, "kept": 0, "total": 0}
+        return {"inserted": 0, "kept": 0, "total": 0, "verified": 0, "missing": []}
 
-    inserted = 0
+    all_ids       = [cid for cid, _ in rows]
+    inserted_ids: list[str] = []
+
     with psycopg2.connect(**DB_CONFIG) as conn:
         cur = conn.cursor()
         for cid, name in rows:
@@ -141,33 +182,57 @@ def upsert_seed_compounds(
                 INSERT INTO seed_compounds (chembl_id, common_name, category)
                 VALUES (%s, %s, %s)
                 ON CONFLICT (chembl_id) DO NOTHING
+                RETURNING chembl_id
                 """,
                 (cid, name, category),
             )
-            inserted += cur.rowcount
+            row = cur.fetchone()
+            if row is not None:
+                inserted_ids.append(row[0])
         conn.commit()
+
+        # Verificacao: todos os IDs do lote precisam existir no banco agora.
+        cur.execute(
+            "SELECT chembl_id FROM seed_compounds WHERE chembl_id = ANY(%s)",
+            (all_ids,),
+        )
+        present = {r[0] for r in cur.fetchall()}
         cur.close()
+
+    missing = [cid for cid in all_ids if cid not in present]
+    inserted = len(inserted_ids)
+
+    log.info(f"  novos inseridos no banco ({inserted}): {inserted_ids}")
+    if missing:
+        log.error(f"  FALTANDO no banco ({len(missing)}): {missing}")
+    else:
+        log.info(f"  verificacao OK: {len(present)}/{len(all_ids)} chembl_ids presentes em seed_compounds")
 
     return {
         "inserted": inserted,
         "kept":     len(rows) - inserted,
         "total":    len(rows),
+        "verified": len(present),
+        "missing":  missing,
     }
 
 
 def scrape_and_seed(
-    start_id:      int,
-    end_id:        int,
-    category:      str = "Outros",
-    export_csv:    Optional[str] = None,
-    sleep_seconds: float = 0.05,
+    start_id:       int,
+    end_id:         int,
+    category:       str = "Outros",
+    export_csv:     Optional[str] = None,
+    sleep_seconds:  float = 0.05,
+    progress_every: int = 25,
 ) -> dict:
     """
     Orquestra scrape + upsert. Retorna stats agregadas.
     Esta e a funcao chamada pelo scheduler na etapa 0 do pipeline.
     """
     log.info(f"Scrape ChEMBL: {start_id}..{end_id} (categoria default: {category!r})")
-    rows = list(iter_named_molecules(start_id, end_id, sleep_seconds))
+    rows = list(iter_named_molecules(
+        start_id, end_id, sleep_seconds, progress_every=progress_every,
+    ))
     log.info(f"  Encontrados {len(rows)} compostos com pref_name")
 
     if export_csv:
@@ -180,7 +245,8 @@ def scrape_and_seed(
     stats = upsert_seed_compounds(rows, category=category)
     log.info(
         f"  seed_compounds: {stats['inserted']} novos | "
-        f"{stats['kept']} ja existiam | {stats['total']} total"
+        f"{stats['kept']} ja existiam | {stats['total']} total | "
+        f"verificados no banco: {stats['verified']}/{stats['total']}"
     )
     return {"scraped": len(rows), **stats}
 
@@ -202,17 +268,20 @@ def _parse_args() -> argparse.Namespace:
                    help="Tambem salvar resultado em CSV (compat com scraper antigo).")
     p.add_argument("--sleep", type=float, default=0.05,
                    help="Pausa entre requisicoes em segundos (default: 0.05).")
+    p.add_argument("--progress-every", type=int, default=25,
+                   help="Emite log de progresso a cada N IDs (0 = silencia). Default: 25.")
     return p.parse_args()
 
 
 def main() -> None:
     args = _parse_args()
     scrape_and_seed(
-        start_id      = args.start,
-        end_id        = args.end,
-        category      = args.category,
-        export_csv    = args.export_csv,
-        sleep_seconds = args.sleep,
+        start_id       = args.start,
+        end_id         = args.end,
+        category       = args.category,
+        export_csv     = args.export_csv,
+        sleep_seconds  = args.sleep,
+        progress_every = args.progress_every,
     )
 
 

@@ -2,9 +2,12 @@
 scheduler.py
 ------------
 Executa o pipeline automaticamente toda semana:
-  1. populate.py   — busca novos artigos no PubMed (incremental)
+  0. (opcional) scraper — varre faixa de CHEMBL IDs e popula seed_compounds
+  1. populate.py   — busca dados completos para os seeds (ADMET, bioativ., etc.)
   2. refresh.py    — atualiza as views materializadas
   3. validate_db.py— verifica integridade do banco e imprime relatório
+  4. (opcional) migrate_to_supabase — sobe dados para produção, somente se
+                  validate retornou OK (gate de segurança)
 
 Instalação:
     pip install apscheduler
@@ -15,20 +18,34 @@ Execução:
     python scheduler.py --day fri --hour 6   # toda sexta às 06:00
     python scheduler.py --interval-hours 12  # a cada 12h (dev/teste)
 
+Etapas opcionais:
+    # Faz scrape antes de tudo, depois popula só os novos
+    python scheduler.py --run-now --scrape-start 10000 --scrape-end 15000
+
+    # Roda pipeline completo e sobe pra produção (Supabase)
+    $env:PROD_DATABASE_URL = "postgresql://postgres.xxx:...@host.supabase.com:6543/postgres"
+    python scheduler.py --run-now
+
 Flags:
     --run-now             Executa o pipeline uma vez imediatamente e sai
     --day DAY             Dia da semana: mon tue wed thu fri sat sun (default: mon)
     --hour HOUR           Hora 0-23 (default: 3)
     --minute MINUTE       Minuto 0-59 (default: 0)
     --interval-hours N    Rodar a cada N horas em vez de semanalmente
-    --skip-validate       Pular o validate_db.py
+    --scrape-start N      CHEMBL N inicial para a etapa de scrape (incl.)
+    --scrape-end   N      CHEMBL N final para a etapa de scrape (incl.)
+    --scrape-category C   Categoria default dos novos seeds (default: 'Outros')
+    --skip-validate       Pular o validate_db.py (desativa o gate de migrate)
     --skip-refresh        Pular o refresh.py
+    --skip-migrate        Não subir para produção mesmo com PROD_DATABASE_URL setado
+    --prod-url URL        URL do banco destino (default: $PROD_DATABASE_URL)
     --populate-args ARGS  Args extras para o populate.py (ex: '--force')
     --timezone TZ         Fuso horário (default: America/Sao_Paulo)
 """
 
 import argparse
 import logging
+import os
 import subprocess
 import sys
 import time
@@ -98,13 +115,24 @@ def run_step(label: str, cmd: list) -> bool:
 
 
 def run_pipeline(
-    skip_validate:  bool = False,
-    skip_refresh:   bool = False,
-    populate_args:  str  = "",
+    skip_validate:   bool = False,
+    skip_refresh:    bool = False,
+    skip_migrate:    bool = False,
+    populate_args:   str  = "",
+    scrape_start:    int  = None,
+    scrape_end:      int  = None,
+    scrape_category: str  = "Outros",
+    prod_url:        str  = "",
 ) -> bool:
     """
-    Executa populate -> refresh -> validate em sequencia.
+    Executa scrape -> populate -> refresh -> validate -> migrate em sequencia.
     Retorna True se tudo OK, False se alguma etapa falhou.
+
+    Etapas opcionais:
+      - scrape  : so roda se scrape_start E scrape_end forem informados
+      - migrate : so roda se prod_url for informado, skip_migrate=False E
+                  validate retornou OK (gate de seguranca: nunca propaga dados
+                  ruins para producao)
     """
     started = datetime.now()
     log.info("=" * 58)
@@ -114,6 +142,20 @@ def run_pipeline(
     log.info("=" * 58)
 
     results = {}
+
+    # 0. Scrape (opcional - so se faixa informada)
+    if scrape_start is not None and scrape_end is not None:
+        results["scrape"] = run_step(
+            "scraper",
+            [
+                PYTHON, "-m", "populate.scraper",
+                "--start", str(scrape_start),
+                "--end",   str(scrape_end),
+                "--category", scrape_category,
+            ],
+        )
+    else:
+        log.info("  . scrape ignorado (sem --scrape-start/--scrape-end)")
 
     # 1. Populate (incremental - so busca o que falta)
     populate_cmd = [PYTHON, str(_script("populate.py"))]
@@ -138,6 +180,30 @@ def run_pipeline(
         )
     else:
         log.info("  . validate_db ignorado (--skip-validate)")
+
+    # 4. Migrate para producao (Supabase) - SOMENTE se validate passou
+    if not prod_url:
+        log.info("  . migrate ignorado (sem --prod-url / $PROD_DATABASE_URL)")
+    elif skip_migrate:
+        log.info("  . migrate ignorado (--skip-migrate)")
+    elif skip_validate:
+        log.warning(
+            "  . migrate ABORTADO: validate foi pulado e nao podemos "
+            "garantir integridade dos dados. Remova --skip-validate."
+        )
+    elif not results.get("validate"):
+        log.warning(
+            "  . migrate ABORTADO: validate_db falhou. "
+            "Nao subindo para producao com dados quebrados."
+        )
+    else:
+        results["migrate"] = run_step(
+            "migrate_to_supabase.py",
+            [
+                PYTHON, str(_script("migrate_to_supabase.py")),
+                "--target-url", prod_url,
+            ],
+        )
 
     # Resumo
     elapsed = round((datetime.now() - started).total_seconds())
@@ -211,12 +277,43 @@ exemplos:
     parser.add_argument(
         "--skip-validate",
         action="store_true",
-        help="Pular o validate_db.py.",
+        help="Pular o validate_db.py (tambem desativa o gate de migrate).",
     )
     parser.add_argument(
         "--skip-refresh",
         action="store_true",
         help="Pular o refresh das views materializadas.",
+    )
+    parser.add_argument(
+        "--skip-migrate",
+        action="store_true",
+        help="Nao subir para producao mesmo com PROD_DATABASE_URL definido.",
+    )
+    parser.add_argument(
+        "--prod-url",
+        default=os.environ.get("PROD_DATABASE_URL", ""),
+        metavar="URL",
+        help="URL do banco destino (Supabase). Default: $PROD_DATABASE_URL.",
+    )
+    parser.add_argument(
+        "--scrape-start",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Primeiro CHEMBL N a varrer (etapa 0). Sem --scrape-end nao roda.",
+    )
+    parser.add_argument(
+        "--scrape-end",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Ultimo CHEMBL N a varrer (etapa 0). Sem --scrape-start nao roda.",
+    )
+    parser.add_argument(
+        "--scrape-category",
+        default="Outros",
+        metavar="C",
+        help="Categoria default para novos seeds (default: 'Outros').",
     )
     parser.add_argument(
         "--populate-args",
@@ -235,10 +332,19 @@ def main() -> None:
     args = parse_args()
 
     pipeline_kwargs = {
-        "skip_validate": args.skip_validate,
-        "skip_refresh":  args.skip_refresh,
-        "populate_args": args.populate_args,
+        "skip_validate":   args.skip_validate,
+        "skip_refresh":    args.skip_refresh,
+        "skip_migrate":    args.skip_migrate,
+        "populate_args":   args.populate_args,
+        "scrape_start":    args.scrape_start,
+        "scrape_end":      args.scrape_end,
+        "scrape_category": args.scrape_category,
+        "prod_url":        args.prod_url,
     }
+
+    if (args.scrape_start is None) ^ (args.scrape_end is None):
+        log.error("--scrape-start e --scrape-end devem ser usados juntos.")
+        sys.exit(2)
 
     # Modo imediato
     if args.run_now:

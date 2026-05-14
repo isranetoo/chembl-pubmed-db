@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Dna, Sparkles } from 'lucide-react'
+import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Dna, Sparkles, GitCompareArrows } from 'lucide-react'
 
 const navigation = [
   { to: '/', label: 'Dashboard', icon: Database },
   { to: '/compounds', label: 'Compostos', icon: FlaskConical },
+  { to: '/compare', label: 'Comparar', icon: GitCompareArrows },
   { to: '/articles', label: 'Artigos', icon: Newspaper },
   { to: '/targets', label: 'Targets', icon: Crosshair },
   { to: '/search', label: 'Busca Global', icon: Search },

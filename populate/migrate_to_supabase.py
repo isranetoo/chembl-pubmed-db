@@ -46,6 +46,10 @@ from urllib.parse import urlparse
 
 import psycopg2
 import psycopg2.extras
+from dotenv import load_dotenv
+
+# Carrega .env da raiz do projeto antes de qualquer leitura de os.environ
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # ============================================================
 # Logging

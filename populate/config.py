@@ -10,6 +10,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Carrega .env da raiz do projeto antes de qualquer leitura de os.environ
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 # ============================================================
 # Logging — console + arquivo com timestamp
 # ============================================================

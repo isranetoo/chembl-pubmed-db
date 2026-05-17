@@ -18,9 +18,9 @@ CLI:
 Estrategia:
     - Para cada N em [start..end], consulta /molecule/CHEMBL{N}.json.
     - Nome resolvido por prioridade: pref_name → molecule_synonyms[0] → chembl_id.
-    - Upsert em `seed_compounds` com ON CONFLICT DO NOTHING — nao sobrescreve
-      `common_name`/`category` editados manualmente nem regressao da flag
-      `is_active`.
+    - Categoria resolvida por prioridade: indication_class → ATC nivel 1 → "Outros".
+    - Upsert em `seed_compounds`: insere novos e atualiza `category` de existentes.
+      `common_name` e `is_active` nunca sao sobrescritos (preserva edicoes manuais).
 
 Depois do scrape, basta rodar `populate.py` normalmente: ele vai pegar os
 novos chembl_ids automaticamente via `load_popular_compounds()` e buscar
@@ -69,6 +69,24 @@ def _create_session() -> requests.Session:
     return s
 
 
+_ATC_CATEGORY: dict[str, str] = {
+    "A": "Trato Alimentar e Metabolismo",
+    "B": "Sangue e Órgãos Hematopoéticos",
+    "C": "Cardiovascular",
+    "D": "Dermatológicos",
+    "G": "Geniturinário e Hormônios Sexuais",
+    "H": "Hormônios Sistêmicos",
+    "J": "Anti-infecciosos",
+    "L": "Oncologia",
+    "M": "Musculoesquelético",
+    "N": "Sistema Nervoso",
+    "P": "Antiparasitários",
+    "R": "Respiratório",
+    "S": "Órgãos dos Sentidos",
+    "V": "Vários",
+}
+
+
 def _resolve_name(mol: dict, chembl_id: str) -> tuple[str, str]:
     """
     Retorna (nome, fonte) para um mol ChEMBL.
@@ -87,17 +105,36 @@ def _resolve_name(mol: dict, chembl_id: str) -> tuple[str, str]:
     return chembl_id, "id_fallback"
 
 
+def _resolve_category(mol: dict) -> str:
+    """
+    Retorna a categoria terapeutica do composto.
+    Prioridade: indication_class → ATC nivel 1 → "Outros".
+    """
+    indication = (mol.get("indication_class") or "").strip()
+    if indication:
+        return indication
+
+    atc_list = mol.get("atc_classifications") or []
+    if atc_list:
+        letter = atc_list[0][0].upper() if atc_list[0] else ""
+        if letter in _ATC_CATEGORY:
+            return _ATC_CATEGORY[letter]
+
+    return "Outros"
+
+
 def iter_named_molecules(
     start_id: int,
     end_id: int,
     sleep_seconds: float = 0.05,
     progress_every: int = 25,
-) -> Iterator[tuple[str, str]]:
+) -> Iterator[tuple[str, str, str]]:
     """
     Itera CHEMBL{start_id}..CHEMBL{end_id} (inclusivo nos dois lados).
-    Yields (chembl_id, nome) para todas as moleculas que existem no ChEMBL.
+    Yields (chembl_id, nome, categoria) para todas as moleculas que existem.
 
-    Nome e resolvido em ordem: pref_name → molecule_synonyms[0] → chembl_id.
+    Nome resolvido em ordem: pref_name → molecule_synonyms[0] → chembl_id.
+    Categoria resolvida em ordem: indication_class → ATC nivel 1 → "Outros".
     404 e tratado como "nao existe nesse ID" — apenas pula sem warning.
     Erros de rede sao logados como warning e continuam para o proximo ID.
 
@@ -141,13 +178,14 @@ def iter_named_molecules(
                     chembl_id = (mol.get("molecule_chembl_id") or "").strip()
                     if chembl_id:
                         name, source = _resolve_name(mol, chembl_id)
+                        category     = _resolve_category(mol)
                         found += 1
                         if source == "synonym":
                             via_syn += 1
                         elif source == "id_fallback":
                             via_id_only += 1
-                        log.debug(f"  + {chembl_id}: {name!r} [{source}]")
-                        yield chembl_id, name
+                        log.debug(f"  + {chembl_id}: {name!r} [{source}] | {category}")
+                        yield chembl_id, name, category
                     else:
                         not_found += 1
                 except ValueError:
@@ -181,25 +219,28 @@ def iter_named_molecules(
 
 
 def upsert_seed_compounds(
-    rows: list[tuple[str, str]],
-    category: str = "Outros",
+    rows: list[tuple[str, str, str]],
 ) -> dict:
     """
-    Upsert na tabela `seed_compounds`. Idempotente: ON CONFLICT DO NOTHING
-    nao sobrescreve `common_name`/`category` de linhas existentes (preserva
-    edicoes manuais e a categorizacao mais especifica do seed inicial).
+    Upsert na tabela `seed_compounds`.
+
+    - Novos compostos: inseridos com nome e categoria da API.
+    - Compostos existentes: apenas `category` e atualizada (categoria vem da API).
+      `common_name` e `is_active` nunca sao sobrescritos (preserva edicoes manuais).
 
     Apos o upsert, faz um SELECT confirmatorio para garantir que todos os
     chembl_ids do lote estao realmente persistidos no banco.
 
-    Retorna {"inserted": int, "kept": int, "total": int, "verified": int,
+    Retorna {"inserted": int, "updated": int, "total": int, "verified": int,
     "missing": list[str]}.
     """
     if not rows:
-        return {"inserted": 0, "kept": 0, "total": 0, "verified": 0, "missing": []}
+        return {"inserted": 0, "updated": 0, "total": 0, "verified": 0, "missing": []}
 
-    all_ids       = [cid for cid, _ in rows]
-    inserted_ids: list[str] = []
+    all_ids        = [cid for cid, *_ in rows]
+    inserted_ids:  list[str] = []
+    updated_ids:   list[str] = []
+    changed_cats:  list[tuple[str, str, str]] = []  # (chembl_id, old_cat, new_cat)
 
     with psycopg2.connect(**DB_CONFIG) as conn:
         cur = conn.cursor()
@@ -218,19 +259,37 @@ def upsert_seed_compounds(
             "CREATE INDEX IF NOT EXISTS idx_seed_compounds_active "
             "ON seed_compounds(is_active)"
         )
-        for cid, name in rows:
+
+        # Captura categorias atuais antes do upsert para detectar mudancas.
+        cur.execute(
+            "SELECT chembl_id, category FROM seed_compounds WHERE chembl_id = ANY(%s)",
+            (all_ids,),
+        )
+        old_categories: dict[str, str | None] = {r[0]: r[1] for r in cur.fetchall()}
+
+        new_cat_by_id = {cid: cat for cid, _, cat in rows}
+
+        for cid, name, cat in rows:
             cur.execute(
                 """
                 INSERT INTO seed_compounds (chembl_id, common_name, category)
                 VALUES (%s, %s, %s)
-                ON CONFLICT (chembl_id) DO NOTHING
-                RETURNING chembl_id
+                ON CONFLICT (chembl_id) DO UPDATE
+                    SET category = EXCLUDED.category
+                RETURNING chembl_id, (xmax = 0) AS is_new
                 """,
-                (cid, name, category),
+                (cid, name, cat),
             )
             row = cur.fetchone()
             if row is not None:
-                inserted_ids.append(row[0])
+                if row[1]:
+                    inserted_ids.append(row[0])
+                else:
+                    updated_ids.append(row[0])
+                    old_cat = old_categories.get(cid)
+                    new_cat = new_cat_by_id[cid]
+                    if old_cat != new_cat:
+                        changed_cats.append((cid, old_cat or "None", new_cat))
         conn.commit()
 
         # Verificacao: todos os IDs do lote precisam existir no banco agora.
@@ -241,10 +300,16 @@ def upsert_seed_compounds(
         present = {r[0] for r in cur.fetchall()}
         cur.close()
 
-    missing = [cid for cid in all_ids if cid not in present]
+    missing  = [cid for cid in all_ids if cid not in present]
     inserted = len(inserted_ids)
+    updated  = len(updated_ids)
 
-    log.info(f"  novos inseridos no banco ({inserted}): {inserted_ids}")
+    log.info(f"  novos inseridos ({inserted}): {inserted_ids}")
+    if changed_cats:
+        for cid, old_cat, new_cat in changed_cats:
+            log.info(f"  categoria alterada: {cid} | {old_cat!r} → {new_cat!r}")
+    else:
+        log.info(f"  categoria atualizada ({updated}): sem mudancas nos existentes")
     if missing:
         log.error(f"  FALTANDO no banco ({len(missing)}): {missing}")
     else:
@@ -252,7 +317,7 @@ def upsert_seed_compounds(
 
     return {
         "inserted": inserted,
-        "kept":     len(rows) - inserted,
+        "updated":  updated,
         "total":    len(rows),
         "verified": len(present),
         "missing":  missing,
@@ -262,7 +327,6 @@ def upsert_seed_compounds(
 def scrape_and_seed(
     start_id:       int,
     end_id:         int,
-    category:       str = "Outros",
     export_csv:     Optional[str] = None,
     sleep_seconds:  float = 0.05,
     progress_every: int = 25,
@@ -274,40 +338,38 @@ def scrape_and_seed(
 
     Insere no banco a cada `batch_size` compostos encontrados — se o processo
     cair no meio, os lotes ja commitados estao salvos.
+    A categoria e resolvida automaticamente pela API (indication_class → ATC → "Outros").
     """
-    log.info(
-        f"Scrape ChEMBL: {start_id}..{end_id} "
-        f"(categoria={category!r}, lote={batch_size})"
-    )
+    log.info(f"Scrape ChEMBL: {start_id}..{end_id} (lote={batch_size}, categoria=da API)")
 
     csv_file:   Optional[object] = None
     csv_writer: Optional[object] = None
     if export_csv:
         csv_file   = open(export_csv, "w", newline="", encoding="utf-8")
         csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(["chembl_id", "pref_name"])
+        csv_writer.writerow(["chembl_id", "pref_name", "category"])
 
-    agg = {"inserted": 0, "kept": 0, "total": 0, "verified": 0, "missing": []}
-    buffer: list[tuple[str, str]] = []
+    agg = {"inserted": 0, "updated": 0, "total": 0, "verified": 0, "missing": []}
+    buffer: list[tuple[str, str, str]] = []
     scraped = 0
 
-    def _flush(buf: list[tuple[str, str]]) -> None:
-        stats = upsert_seed_compounds(buf, category=category)
+    def _flush(buf: list[tuple[str, str, str]]) -> None:
+        stats = upsert_seed_compounds(buf)
         agg["inserted"] += stats["inserted"]
-        agg["kept"]     += stats["kept"]
+        agg["updated"]  += stats["updated"]
         agg["total"]    += stats["total"]
         agg["verified"] += stats["verified"]
         agg["missing"].extend(stats["missing"])
 
     try:
-        for chembl_id, pref_name in iter_named_molecules(
+        for chembl_id, name, category in iter_named_molecules(
             start_id, end_id, sleep_seconds, progress_every=progress_every,
         ):
             scraped += 1
-            buffer.append((chembl_id, pref_name))
+            buffer.append((chembl_id, name, category))
 
             if csv_writer:
-                csv_writer.writerow([chembl_id, pref_name])
+                csv_writer.writerow([chembl_id, name, category])
                 csv_file.flush()
 
             if len(buffer) >= batch_size:
@@ -327,7 +389,7 @@ def scrape_and_seed(
 
     log.info(
         f"  seed_compounds: {agg['inserted']} novos | "
-        f"{agg['kept']} ja existiam | {agg['total']} total | "
+        f"{agg['updated']} categoria atualizada | {agg['total']} total | "
         f"verificados no banco: {agg['verified']}/{agg['total']}"
     )
     return {"scraped": scraped, **agg}
@@ -344,8 +406,6 @@ def _parse_args() -> argparse.Namespace:
     )
     p.add_argument("--start",    type=int, required=True, help="Primeiro CHEMBL N (incl.)")
     p.add_argument("--end",      type=int, required=True, help="Ultimo CHEMBL N (incl.)")
-    p.add_argument("--category", default="Outros",
-                   help="Categoria para os novos seeds (default: 'Outros').")
     p.add_argument("--export-csv", metavar="FILE", default=None,
                    help="Tambem salvar resultado em CSV (compat com scraper antigo).")
     p.add_argument("--sleep", type=float, default=0.05,
@@ -362,7 +422,6 @@ def main() -> None:
     scrape_and_seed(
         start_id       = args.start,
         end_id         = args.end,
-        category       = args.category,
         export_csv     = args.export_csv,
         sleep_seconds  = args.sleep,
         progress_every = args.progress_every,

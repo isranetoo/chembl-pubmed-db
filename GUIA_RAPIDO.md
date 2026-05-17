@@ -231,6 +231,7 @@ python -m populate.scraper --start 1 --end 15000 --sleep 0.2
 # 1. Descobrir novos compostos e inserir na seed_compounds
 python -m populate.scraper --start 10000 --end 15000
 
+
 # 2. Popular os dados completos (ADMET, bioatividades, mecanismos, PubMed)
 python populate.py
 

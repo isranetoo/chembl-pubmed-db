@@ -17,7 +17,7 @@ CLI:
 
 Estrategia:
     - Para cada N em [start..end], consulta /molecule/CHEMBL{N}.json.
-    - Mantem so registros com `pref_name` nao vazio.
+    - Nome resolvido por prioridade: pref_name → molecule_synonyms[0] → chembl_id.
     - Upsert em `seed_compounds` com ON CONFLICT DO NOTHING — nao sobrescreve
       `common_name`/`category` editados manualmente nem regressao da flag
       `is_active`.
@@ -69,6 +69,24 @@ def _create_session() -> requests.Session:
     return s
 
 
+def _resolve_name(mol: dict, chembl_id: str) -> tuple[str, str]:
+    """
+    Retorna (nome, fonte) para um mol ChEMBL.
+    Prioridade: pref_name → primeiro synonym → chembl_id.
+    """
+    pref_name = (mol.get("pref_name") or "").strip()
+    if pref_name:
+        return pref_name, "pref_name"
+
+    syns = mol.get("molecule_synonyms") or []
+    if syns:
+        syn = (syns[0].get("molecule_synonym") or "").strip()
+        if syn:
+            return syn, "synonym"
+
+    return chembl_id, "id_fallback"
+
+
 def iter_named_molecules(
     start_id: int,
     end_id: int,
@@ -77,8 +95,9 @@ def iter_named_molecules(
 ) -> Iterator[tuple[str, str]]:
     """
     Itera CHEMBL{start_id}..CHEMBL{end_id} (inclusivo nos dois lados).
-    Yields (chembl_id, pref_name) apenas para moleculas com `pref_name` nao vazio.
+    Yields (chembl_id, nome) para todas as moleculas que existem no ChEMBL.
 
+    Nome e resolvido em ordem: pref_name → molecule_synonyms[0] → chembl_id.
     404 e tratado como "nao existe nesse ID" — apenas pula sem warning.
     Erros de rede sao logados como warning e continuam para o proximo ID.
 
@@ -88,12 +107,14 @@ def iter_named_molecules(
     if start_id > end_id:
         raise ValueError("start_id nao pode ser maior que end_id")
 
-    total      = end_id - start_id + 1
-    processed  = 0
-    found      = 0
-    not_found  = 0
-    errors     = 0
-    t_start    = time.monotonic()
+    total        = end_id - start_id + 1
+    processed    = 0
+    found        = 0
+    not_found    = 0
+    via_syn      = 0
+    via_id_only  = 0
+    errors       = 0
+    t_start      = time.monotonic()
 
     session = _create_session()
     try:
@@ -118,11 +139,15 @@ def iter_named_molecules(
                 try:
                     mol = r.json()
                     chembl_id = (mol.get("molecule_chembl_id") or "").strip()
-                    pref_name = (mol.get("pref_name") or "").strip()
-                    if chembl_id and pref_name:
+                    if chembl_id:
+                        name, source = _resolve_name(mol, chembl_id)
                         found += 1
-                        log.debug(f"  + {chembl_id}: {pref_name}")
-                        yield chembl_id, pref_name
+                        if source == "synonym":
+                            via_syn += 1
+                        elif source == "id_fallback":
+                            via_id_only += 1
+                        log.debug(f"  + {chembl_id}: {name!r} [{source}]")
+                        yield chembl_id, name
                     else:
                         not_found += 1
                 except ValueError:
@@ -139,7 +164,8 @@ def iter_named_molecules(
                 pct     = 100.0 * processed / total
                 log.info(
                     f"  progresso: {processed}/{total} ({pct:5.1f}%) | "
-                    f"com_nome={found} | 404/sem_nome={not_found} | erros={errors} | "
+                    f"encontrados={found} (syn={via_syn}, id_fb={via_id_only}) | "
+                    f"404={not_found} | erros={errors} | "
                     f"{rate:.1f} IDs/s | ETA ~{eta_s:5.0f}s"
                 )
 
@@ -149,7 +175,8 @@ def iter_named_molecules(
         elapsed = time.monotonic() - t_start
         log.info(
             f"  fim do scrape: {processed}/{total} IDs em {elapsed:.1f}s "
-            f"| com_nome={found} | 404/sem_nome={not_found} | erros={errors}"
+            f"| encontrados={found} (syn={via_syn}, id_fb={via_id_only}) "
+            f"| 404={not_found} | erros={errors}"
         )
 
 
@@ -176,6 +203,21 @@ def upsert_seed_compounds(
 
     with psycopg2.connect(**DB_CONFIG) as conn:
         cur = conn.cursor()
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS seed_compounds (
+                chembl_id    TEXT PRIMARY KEY,
+                common_name  TEXT NOT NULL,
+                category     TEXT,
+                is_active    BOOLEAN NOT NULL DEFAULT TRUE,
+                added_at     TIMESTAMP DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_seed_compounds_active "
+            "ON seed_compounds(is_active)"
+        )
         for cid, name in rows:
             cur.execute(
                 """
@@ -224,31 +266,71 @@ def scrape_and_seed(
     export_csv:     Optional[str] = None,
     sleep_seconds:  float = 0.05,
     progress_every: int = 25,
+    batch_size:     int = 50,
 ) -> dict:
     """
-    Orquestra scrape + upsert. Retorna stats agregadas.
+    Orquestra scrape + upsert em lotes. Retorna stats agregadas.
     Esta e a funcao chamada pelo scheduler na etapa 0 do pipeline.
+
+    Insere no banco a cada `batch_size` compostos encontrados — se o processo
+    cair no meio, os lotes ja commitados estao salvos.
     """
-    log.info(f"Scrape ChEMBL: {start_id}..{end_id} (categoria default: {category!r})")
-    rows = list(iter_named_molecules(
-        start_id, end_id, sleep_seconds, progress_every=progress_every,
-    ))
-    log.info(f"  Encontrados {len(rows)} compostos com pref_name")
-
-    if export_csv:
-        with open(export_csv, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["chembl_id", "pref_name"])
-            w.writerows(rows)
-        log.info(f"  CSV exportado: {export_csv}")
-
-    stats = upsert_seed_compounds(rows, category=category)
     log.info(
-        f"  seed_compounds: {stats['inserted']} novos | "
-        f"{stats['kept']} ja existiam | {stats['total']} total | "
-        f"verificados no banco: {stats['verified']}/{stats['total']}"
+        f"Scrape ChEMBL: {start_id}..{end_id} "
+        f"(categoria={category!r}, lote={batch_size})"
     )
-    return {"scraped": len(rows), **stats}
+
+    csv_file:   Optional[object] = None
+    csv_writer: Optional[object] = None
+    if export_csv:
+        csv_file   = open(export_csv, "w", newline="", encoding="utf-8")
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(["chembl_id", "pref_name"])
+
+    agg = {"inserted": 0, "kept": 0, "total": 0, "verified": 0, "missing": []}
+    buffer: list[tuple[str, str]] = []
+    scraped = 0
+
+    def _flush(buf: list[tuple[str, str]]) -> None:
+        stats = upsert_seed_compounds(buf, category=category)
+        agg["inserted"] += stats["inserted"]
+        agg["kept"]     += stats["kept"]
+        agg["total"]    += stats["total"]
+        agg["verified"] += stats["verified"]
+        agg["missing"].extend(stats["missing"])
+
+    try:
+        for chembl_id, pref_name in iter_named_molecules(
+            start_id, end_id, sleep_seconds, progress_every=progress_every,
+        ):
+            scraped += 1
+            buffer.append((chembl_id, pref_name))
+
+            if csv_writer:
+                csv_writer.writerow([chembl_id, pref_name])
+                csv_file.flush()
+
+            if len(buffer) >= batch_size:
+                log.info(f"  [lote] {len(buffer)} compostos → banco")
+                _flush(buffer)
+                buffer = []
+
+        if buffer:
+            log.info(f"  [lote final] {len(buffer)} compostos → banco")
+            _flush(buffer)
+
+    finally:
+        if csv_file:
+            csv_file.close()
+            if export_csv:
+                log.info(f"  CSV exportado: {export_csv}")
+
+    log.info(
+        f"  seed_compounds: {agg['inserted']} novos | "
+        f"{agg['kept']} ja existiam | {agg['total']} total | "
+        f"verificados no banco: {agg['verified']}/{agg['total']}"
+    )
+    return {"scraped": scraped, **agg}
 
 
 # ============================================================
@@ -270,6 +352,8 @@ def _parse_args() -> argparse.Namespace:
                    help="Pausa entre requisicoes em segundos (default: 0.05).")
     p.add_argument("--progress-every", type=int, default=25,
                    help="Emite log de progresso a cada N IDs (0 = silencia). Default: 25.")
+    p.add_argument("--batch-size", type=int, default=50,
+                   help="Insere no banco a cada N compostos encontrados (default: 50).")
     return p.parse_args()
 
 
@@ -282,6 +366,7 @@ def main() -> None:
         export_csv     = args.export_csv,
         sleep_seconds  = args.sleep,
         progress_every = args.progress_every,
+        batch_size     = args.batch_size,
     )
 
 

@@ -222,7 +222,7 @@ python -m populate.scraper --start 10000 --end 15000 --category "Oncologia"
 python -m populate.scraper --start 10000 --end 15000 --export-csv compostos.csv
 
 # Reduzir a velocidade das requisições (útil se a API do ChEMBL estiver lenta)
-python -m populate.scraper --start 10000 --end 15000 --sleep 0.2
+python -m populate.scraper --start 1 --end 15000 --sleep 0.2
 ```
 
 ### Fluxo completo ao usar o scraper

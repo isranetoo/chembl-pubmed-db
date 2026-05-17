@@ -44,15 +44,74 @@ depends_on = None
 INIT_DIR = Path(__file__).resolve().parents[2] / "database" / "init"
 
 
+_BASELINE_TABLES = (
+    "compounds",
+    "targets",
+    "bioactivities",
+    "articles",
+    "article_compounds",
+    "indications",
+    "mechanisms",
+    "admet_properties",
+    "indication_tcga_map",  # created by 08_owkin_histopathology.sql
+)
+
+# Tables created by 01_schema.sql through 07_materialized_views.sql.
+# If all of these exist the core schema is already in place; we can safely
+# apply the remaining SQL files (which use CREATE … IF NOT EXISTS).
+_CORE_TABLES = frozenset({
+    "compounds", "targets", "bioactivities", "articles",
+    "article_compounds", "indications", "mechanisms", "admet_properties",
+})
+
+
+def _existing_baseline_tables(cur) -> set[str]:
+    cur.execute(
+        """
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = ANY(%s)
+        """,
+        (list(_BASELINE_TABLES),),
+    )
+    return {row[0] for row in cur.fetchall()}
+
+
 def upgrade() -> None:
     """Executa os SQLs de bootstrap na ordem numérica."""
     raw_conn = op.get_bind().connection
     cur = raw_conn.cursor()
 
-    for sql_path in sorted(INIT_DIR.glob("*.sql")):
-        sql = sql_path.read_text(encoding="utf-8")
-        # psycopg2 aceita múltiplas statements em uma única chamada execute().
-        cur.execute(sql)
+    existing = _existing_baseline_tables(cur)
+
+    if existing == set(_BASELINE_TABLES):
+        # Banco completamente inicializado — no-op.
+        return
+
+    if not existing:
+        # Banco vazio — executa todos os SQLs em ordem.
+        for sql_path in sorted(INIT_DIR.glob("*.sql")):
+            cur.execute(sql_path.read_text(encoding="utf-8"))
+        return
+
+    if _CORE_TABLES.issubset(existing):
+        # Schema core existe (criado via docker-compose ou versão anterior).
+        # Apenas as tabelas suplementares (08_owkin_histopathology.sql) estão
+        # faltando. Esse arquivo usa CREATE … IF NOT EXISTS, portanto é seguro
+        # aplicá-lo agora sem risco de duplicar as demais tabelas.
+        owkin_sql = INIT_DIR / "08_owkin_histopathology.sql"
+        cur.execute(owkin_sql.read_text(encoding="utf-8"))
+        return
+
+    missing = sorted(set(_BASELINE_TABLES) - existing)
+    found = sorted(existing)
+    raise RuntimeError(
+        "Schema parcial detectado: algumas tabelas do baseline já existem, "
+        "mas o banco não parece completamente inicializado. "
+        f"Encontradas: {found}. Ausentes: {missing}. "
+        "Recrie o banco/volume ou alinhe o schema antes de rodar Alembic."
+    )
 
 
 def downgrade() -> None:

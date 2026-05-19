@@ -7,6 +7,8 @@ import ArticlesPage from './pages/ArticlesPage'
 import TargetsPage from './pages/TargetsPage'
 import SearchPage from './pages/SearchPage'
 import ComparePage from './pages/ComparePage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import ToolsPage from './pages/ToolsPage'
 
 export default function App() {
   return (
@@ -16,6 +18,8 @@ export default function App() {
         <Route path="/compounds" element={<CompoundsPage />} />
         <Route path="/compounds/:chemblId" element={<CompoundDetailPage />} />
         <Route path="/compare" element={<ComparePage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/tools" element={<ToolsPage />} />
         <Route path="/articles" element={<ArticlesPage />} />
         <Route path="/targets" element={<TargetsPage />} />
         <Route path="/search" element={<SearchPage />} />

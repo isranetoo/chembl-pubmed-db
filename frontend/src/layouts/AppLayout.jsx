@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
-import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Sparkles, GitCompareArrows } from 'lucide-react'
+import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Sparkles, GitCompareArrows, BarChart3, Wrench } from 'lucide-react'
 
 const LOGO_SRC = '/assets/img/logo.png'
 
@@ -8,6 +8,8 @@ const navigation = [
   { to: '/', label: 'Dashboard', icon: Database },
   { to: '/compounds', label: 'Compostos', icon: FlaskConical },
   { to: '/compare', label: 'Comparar', icon: GitCompareArrows },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/tools', label: 'Ferramentas', icon: Wrench },
   { to: '/articles', label: 'Artigos', icon: Newspaper },
   { to: '/targets', label: 'Targets', icon: Crosshair },
   { to: '/search', label: 'Busca Global', icon: Search },

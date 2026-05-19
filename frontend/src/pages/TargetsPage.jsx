@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTargets } from '../lib/hooks'
 import Loader from '../components/Loader'
 import EmptyState from '../components/EmptyState'
@@ -6,7 +7,7 @@ import Table from '../components/Table'
 import Pagination from '../components/Pagination'
 import Section from '../components/Section'
 import { formatNumber } from '../lib/utils'
-import { Crosshair } from 'lucide-react'
+import { Crosshair, ArrowUpRight } from 'lucide-react'
 
 export default function TargetsPage() {
   const [filters, setFilters] = useState({ q: '', organism: '', page: 1, size: 20 })
@@ -43,14 +44,21 @@ export default function TargetsPage() {
           <div className="space-y-4">
             <p className="text-sm text-neutral-500">{formatNumber(data.total)} targets</p>
             <Table columns={[
-              { key: 'chembl_id', header: 'ID', render: (r) => <code className="text-[11px] text-green-800 font-mono">{r.chembl_id}</code> },
+              { key: 'chembl_id', header: 'ID', render: (r) => (
+                <Link to={`/targets/${r.chembl_id}`} className="text-[11px] text-green-800 hover:text-green-900 hover:underline font-mono">
+                  {r.chembl_id}
+                </Link>
+              )},
               { key: 'name', header: 'Nome', render: (r) => (
-                <div className="flex items-center gap-2">
+                <Link to={`/targets/${r.chembl_id}`} className="group flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-violet-100 border border-violet-200 flex items-center justify-center flex-shrink-0">
                     <Crosshair size={13} className="text-violet-700" />
                   </div>
-                  <span className="text-gray-800 font-medium text-sm">{r.name}</span>
-                </div>
+                  <span className="text-gray-800 font-medium text-sm group-hover:text-violet-700 transition-colors flex items-center gap-1">
+                    {r.name}
+                    <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-violet-700" />
+                  </span>
+                </Link>
               )},
               { key: 'type', header: 'Tipo', render: (r) => <span className="text-neutral-500 text-xs">{r.type || '—'}</span> },
               { key: 'organism', header: 'Organismo', render: (r) => <span className="text-neutral-500 text-xs italic">{r.organism || '—'}</span> },

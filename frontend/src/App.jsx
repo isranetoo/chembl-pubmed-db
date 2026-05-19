@@ -5,6 +5,7 @@ import CompoundsPage from './pages/CompoundsPage'
 import CompoundDetailPage from './pages/CompoundDetailPage'
 import ArticlesPage from './pages/ArticlesPage'
 import TargetsPage from './pages/TargetsPage'
+import TargetDetailPage from './pages/TargetDetailPage'
 import SearchPage from './pages/SearchPage'
 import ComparePage from './pages/ComparePage'
 import AnalyticsPage from './pages/AnalyticsPage'
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/tools" element={<ToolsPage />} />
         <Route path="/articles" element={<ArticlesPage />} />
         <Route path="/targets" element={<TargetsPage />} />
+        <Route path="/targets/:chemblId" element={<TargetDetailPage />} />
         <Route path="/search" element={<SearchPage />} />
       </Route>
     </Routes>

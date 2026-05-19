@@ -347,6 +347,86 @@ class TargetListItem(_Base):
     compounds_tested: int = 0
 
 
+class TargetComponent(_Base):
+    accession:             Optional[str] = None    # UniProt
+    gene_symbol:           Optional[str] = None    # ABL1
+    component_type:        Optional[str] = None    # PROTEIN | RNA | …
+    component_description: Optional[str] = None
+    relationship:          Optional[str] = None
+
+
+class TargetGoTerm(_Base):
+    category: str    # GoFunction | GoProcess | GoComponent
+    go_id:    str    # GO:0005524
+    term:     Optional[str] = None
+
+
+class TargetXrefGroup(_Base):
+    src_db: str
+    ids:    List[str] = []
+
+
+class TargetBioStats(_Base):
+    total_bioactivities:    int = 0
+    distinct_compounds:     int = 0
+    bioactivities_with_pchembl: int = 0
+    potent_bioactivities:   int = 0       # pchembl >= 7
+    median_pchembl:         Optional[float] = None
+    distinct_assay_types:   int = 0
+    distinct_activity_types: int = 0
+
+
+class TargetDetail(_Base):
+    chembl_id:           str
+    name:                Optional[str] = None
+    type:                Optional[str] = None
+    organism:            Optional[str] = None
+    tax_id:              Optional[int] = None
+    species_group_flag:  Optional[bool] = None
+    components:          List[TargetComponent] = []
+    pdb_ids:             List[str]      = []
+    go_terms:            List[TargetGoTerm] = []
+    xrefs:               List[TargetXrefGroup] = []
+    stats:               TargetBioStats
+
+
+class TargetCompoundItem(_Base):
+    chembl_id:          str
+    name:               Optional[str]   = None
+    max_clinical_phase: Optional[float] = None
+    qed:                Optional[float] = None
+    best_pchembl:       Optional[float] = None
+    best_activity_type: Optional[str]   = None
+    best_value:         Optional[float] = None
+    best_units:         Optional[str]   = None
+    n_bioactivities:    int = 0
+
+
+class TargetCompoundsResponse(Page[TargetCompoundItem]):
+    chembl_id: str
+
+
+class TargetBioactivityItem(_Base):
+    compound_chembl_id: str
+    compound_name:      Optional[str]   = None
+    activity_type:      Optional[str]   = None
+    value:              Optional[float] = None
+    units:              Optional[str]   = None
+    relation:           Optional[str]   = None
+    pchembl_value:      Optional[float] = None
+    standard_value:     Optional[float] = None
+    standard_units:     Optional[str]   = None
+    assay_chembl_id:    Optional[str]   = None
+    assay_type:         Optional[str]   = None
+    assay_description:  Optional[str]   = None
+    document_year:      Optional[int]   = None
+    document_journal:   Optional[str]   = None
+
+
+class TargetBioactivitiesResponse(Page[TargetBioactivityItem]):
+    chembl_id: str
+
+
 # ============================================================
 # Busca full-text unificada
 # ============================================================

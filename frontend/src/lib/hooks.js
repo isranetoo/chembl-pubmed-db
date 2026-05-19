@@ -31,6 +31,23 @@ export function useArticles(params) {
 export function useTargets(params) {
   return useQuery({ queryKey: ['targets', params], queryFn: () => api.getTargets(params) })
 }
+export function useTarget(chemblId) {
+  return useQuery({ queryKey: ['target', chemblId], queryFn: () => api.getTarget(chemblId), enabled: !!chemblId })
+}
+export function useTargetCompounds(chemblId, params = {}) {
+  return useQuery({
+    queryKey: ['target-compounds', chemblId, params],
+    queryFn: () => api.getTargetCompounds(chemblId, params),
+    enabled: !!chemblId,
+  })
+}
+export function useTargetBioactivities(chemblId, params = {}) {
+  return useQuery({
+    queryKey: ['target-bioactivities', chemblId, params],
+    queryFn: () => api.getTargetBioactivities(chemblId, params),
+    enabled: !!chemblId,
+  })
+}
 export function useGlobalSearch(params) {
   return useQuery({ queryKey: ['search', params], queryFn: () => api.search(params), enabled: Boolean(params?.q) })
 }

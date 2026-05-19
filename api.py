@@ -60,6 +60,9 @@ from schemas import (
     RootResponse,
     SearchResponse,
     StatsResponse,
+    TargetBioactivitiesResponse,
+    TargetCompoundsResponse,
+    TargetDetail,
     TargetListItem,
 )
 
@@ -247,6 +250,9 @@ def root():
             "GET /articles",
             "GET /articles/{pmid}",
             "GET /targets",
+            "GET /targets/{chembl_id}",
+            "GET /targets/{chembl_id}/compounds",
+            "GET /targets/{chembl_id}/bioactivities",
             "GET /search",
             "GET /stats",
         ],
@@ -817,6 +823,237 @@ def list_targets(
     sql += " GROUP BY t.chembl_id, t.name, t.type, t.organism ORDER BY compounds_tested DESC, t.name"
 
     return _paginate(sql, params, page, size)
+
+
+def _resolve_target_id(chembl_id: str) -> str:
+    """Retorna o UUID interno do target ou lança 404."""
+    row = db_one(
+        "SELECT id::text FROM targets WHERE chembl_id = %s",
+        (chembl_id.upper(),),
+    )
+    if not row:
+        raise HTTPException(404, detail=f"Target '{chembl_id}' não encontrado.")
+    return row["id"]
+
+
+@app.get(
+    "/targets/{chembl_id}",
+    tags=["alvos"],
+    summary="Detalhe completo do alvo biológico",
+    response_model=TargetDetail,
+)
+def get_target(chembl_id: str):
+    target_id = _resolve_target_id(chembl_id)
+
+    base = db_one("""
+        SELECT
+            t.chembl_id,
+            t.name,
+            t.type,
+            t.organism,
+            t.tax_id,
+            t.species_group_flag
+        FROM targets t
+        WHERE t.id = %s
+    """, (target_id,))
+
+    components = db_query("""
+        SELECT
+            tc.accession,
+            tc.gene_symbol,
+            tc.component_type,
+            tc.component_description,
+            tc.relationship
+        FROM target_components tc
+        WHERE tc.target_id = %s
+        ORDER BY tc.component_id
+    """, (target_id,))
+
+    pdb_rows = db_query("""
+        SELECT DISTINCT tx.xref_id
+        FROM target_components tc
+        JOIN target_xrefs tx ON tx.component_id = tc.id
+        WHERE tc.target_id = %s AND tx.xref_src_db IN ('PDB', 'PDBe')
+        ORDER BY tx.xref_id
+    """, (target_id,))
+    pdb_ids = [r["xref_id"] for r in pdb_rows]
+
+    go_terms = db_query("""
+        SELECT
+            tx.xref_src_db AS category,
+            tx.xref_id     AS go_id,
+            tx.xref_name   AS term
+        FROM target_components tc
+        JOIN target_xrefs      tx ON tx.component_id = tc.id
+        WHERE tc.target_id = %s AND tx.xref_src_db LIKE 'Go%%'
+        ORDER BY tx.xref_src_db, tx.xref_id
+    """, (target_id,))
+
+    xref_rows = db_query("""
+        SELECT tx.xref_src_db AS src_db, tx.xref_id
+        FROM target_components tc
+        JOIN target_xrefs      tx ON tx.component_id = tc.id
+        WHERE tc.target_id = %s
+          AND tx.xref_src_db NOT IN ('PDB', 'PDBe')
+          AND tx.xref_src_db NOT LIKE 'Go%%'
+        ORDER BY tx.xref_src_db, tx.xref_id
+    """, (target_id,))
+    xrefs: dict[str, list[str]] = {}
+    for r in xref_rows:
+        xrefs.setdefault(r["src_db"], []).append(r["xref_id"])
+    xrefs_list = [{"src_db": k, "ids": v} for k, v in xrefs.items()]
+
+    stats = db_one("""
+        SELECT
+            COUNT(*)                                      AS total_bioactivities,
+            COUNT(DISTINCT b.compound_id)                 AS distinct_compounds,
+            COUNT(*) FILTER (WHERE b.pchembl_value IS NOT NULL) AS bioactivities_with_pchembl,
+            COUNT(*) FILTER (WHERE b.pchembl_value >= 7)        AS potent_bioactivities,
+            PERCENTILE_CONT(0.5) WITHIN GROUP (
+                ORDER BY b.pchembl_value
+            )                                             AS median_pchembl,
+            COUNT(DISTINCT b.assay_type)
+              FILTER (WHERE b.assay_type IS NOT NULL)     AS distinct_assay_types,
+            COUNT(DISTINCT b.activity_type)
+              FILTER (WHERE b.activity_type IS NOT NULL)  AS distinct_activity_types
+        FROM bioactivities b
+        WHERE b.target_id = %s
+    """, (target_id,)) or {}
+
+    if stats.get("median_pchembl") is not None:
+        stats["median_pchembl"] = round(float(stats["median_pchembl"]), 2)
+
+    return {
+        **base,
+        "components": components,
+        "pdb_ids":    pdb_ids,
+        "go_terms":   go_terms,
+        "xrefs":      xrefs_list,
+        "stats":      stats,
+    }
+
+
+@app.get(
+    "/targets/{chembl_id}/compounds",
+    tags=["alvos"],
+    summary="Compostos testados contra este alvo",
+    response_model=TargetCompoundsResponse,
+)
+def get_target_compounds(
+    chembl_id:   str,
+    min_pchembl: Optional[float] = Query(None, description="pChEMBL mínimo (no melhor ensaio do composto)", ge=0, le=14),
+    activity_type: Optional[str] = Query(None, description="Tipo: IC50, Ki, EC50..."),
+    page:        int             = Query(1,    ge=1),
+    size:        int             = Query(20,   ge=1, le=100),
+):
+    target_id = _resolve_target_id(chembl_id)
+
+    # Agrega por composto e pega o MELHOR registro (maior pchembl) contra este alvo.
+    sql = """
+        WITH per_compound AS (
+            SELECT
+                b.compound_id,
+                MAX(b.pchembl_value)                            AS best_pchembl,
+                COUNT(*)                                        AS n_bioactivities
+            FROM bioactivities b
+            WHERE b.target_id = %s
+            GROUP BY b.compound_id
+        ),
+        best_row AS (
+            SELECT DISTINCT ON (b.compound_id)
+                b.compound_id,
+                b.activity_type AS best_activity_type,
+                b.value         AS best_value,
+                b.units         AS best_units
+            FROM bioactivities b
+            WHERE b.target_id = %s
+            ORDER BY b.compound_id, b.pchembl_value DESC NULLS LAST
+        )
+        SELECT
+            c.chembl_id,
+            c.name,
+            c.max_phase                                AS max_clinical_phase,
+            ROUND(a.qed_weighted::numeric, 4)          AS qed,
+            ROUND(pc.best_pchembl::numeric, 2)         AS best_pchembl,
+            br.best_activity_type,
+            ROUND(br.best_value::numeric, 4)           AS best_value,
+            br.best_units,
+            pc.n_bioactivities
+        FROM per_compound pc
+        JOIN compounds      c  ON c.id = pc.compound_id
+        LEFT JOIN admet_properties a ON a.compound_id = c.id
+        LEFT JOIN best_row  br ON br.compound_id = pc.compound_id
+        WHERE 1=1
+    """
+    params: list = [target_id, target_id]
+
+    if min_pchembl is not None:
+        sql += " AND pc.best_pchembl >= %s"
+        params.append(min_pchembl)
+    if activity_type:
+        sql += " AND UPPER(br.best_activity_type) = UPPER(%s)"
+        params.append(activity_type)
+
+    sql += " ORDER BY pc.best_pchembl DESC NULLS LAST, c.name"
+
+    result = _paginate(sql, params, page, size)
+    result["chembl_id"] = chembl_id.upper()
+    return result
+
+
+@app.get(
+    "/targets/{chembl_id}/bioactivities",
+    tags=["alvos"],
+    summary="Bioatividades brutas contra este alvo",
+    response_model=TargetBioactivitiesResponse,
+)
+def get_target_bioactivities(
+    chembl_id:     str,
+    activity_type: Optional[str]   = Query(None, description="Tipo: IC50, Ki, EC50..."),
+    assay_type:    Optional[str]   = Query(None, description="B|F|A|T|P"),
+    min_pchembl:   Optional[float] = Query(None, ge=0, le=14),
+    page:          int             = Query(1,    ge=1),
+    size:          int             = Query(20,   ge=1, le=100),
+):
+    target_id = _resolve_target_id(chembl_id)
+
+    sql = """
+        SELECT
+            c.chembl_id                              AS compound_chembl_id,
+            c.name                                   AS compound_name,
+            b.activity_type,
+            b.value,
+            b.units,
+            b.relation,
+            ROUND(b.pchembl_value::numeric, 2)       AS pchembl_value,
+            ROUND(b.standard_value::numeric, 4)      AS standard_value,
+            b.standard_units,
+            b.assay_chembl_id,
+            b.assay_type,
+            b.assay_description,
+            b.document_year,
+            b.document_journal
+        FROM bioactivities b
+        JOIN compounds c ON c.id = b.compound_id
+        WHERE b.target_id = %s
+    """
+    params: list = [target_id]
+
+    if activity_type:
+        sql += " AND UPPER(b.activity_type) = UPPER(%s)"
+        params.append(activity_type)
+    if assay_type:
+        sql += " AND UPPER(b.assay_type) = UPPER(%s)"
+        params.append(assay_type)
+    if min_pchembl is not None:
+        sql += " AND b.pchembl_value >= %s"
+        params.append(min_pchembl)
+
+    sql += " ORDER BY b.pchembl_value DESC NULLS LAST, b.activity_type, b.value"
+
+    result = _paginate(sql, params, page, size)
+    result["chembl_id"] = chembl_id.upper()
+    return result
 
 
 # ============================================================

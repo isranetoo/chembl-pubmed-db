@@ -32,5 +32,8 @@ export const api = {
     request(`/compounds/${chemblId}/trials/sync`, params, { method: 'POST' }),
   getArticles: (params) => request('/articles', params),
   getTargets: (params) => request('/targets', params),
+  getTarget: (chemblId) => request(`/targets/${chemblId}`),
+  getTargetCompounds: (chemblId, params) => request(`/targets/${chemblId}/compounds`, params),
+  getTargetBioactivities: (chemblId, params) => request(`/targets/${chemblId}/bioactivities`, params),
   search: (params) => request('/search', params),
 }

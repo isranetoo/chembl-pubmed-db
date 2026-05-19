@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import {
   ArrowLeft, Crosshair, Dna, FlaskConical, Boxes, Network, ExternalLink,
-  TestTube2, Zap, Activity, BookOpen, ArrowUpRight,
+  Zap, Activity, ArrowUpRight,
 } from 'lucide-react'
 import { useTarget, useTargetCompounds, useTargetBioactivities } from '../lib/hooks'
 import { formatNumber, getPhaseBadgeClass, phaseLabel } from '../lib/utils'
@@ -15,6 +15,7 @@ import Table from '../components/Table'
 import Pill from '../components/Pill'
 import Pagination from '../components/Pagination'
 import EmptyState from '../components/EmptyState'
+import PdbViewer from '../components/PdbViewer'
 
 const PAGE_SIZE = 20
 
@@ -469,6 +470,13 @@ function AnnotationsTab({ target }) {
 
 function StructuresTab({ target }) {
   const { pdb_ids = [] } = target
+  const [selected, setSelected] = useState(pdb_ids[0] || null)
+
+  useEffect(() => {
+    setSelected(pdb_ids[0] || null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target.chembl_id])
+
   if (pdb_ids.length === 0) {
     return (
       <div className="rounded-xl bg-white border border-gray-200 p-8 text-center">
@@ -479,27 +487,53 @@ function StructuresTab({ target }) {
   }
 
   return (
-    <Section title={`${pdb_ids.length} estruturas resolvidas`}>
-      <p className="text-xs text-neutral-500 mb-3">
-        Clique em um PDB ID para abrir no RCSB PDB. Estruturas 3D úteis pra docking, análise de bolso e modelagem.
-      </p>
-      <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
-        {pdb_ids.map((id) => (
-          <a key={id}
-            href={`https://www.rcsb.org/structure/${id}`}
-            target="_blank" rel="noopener noreferrer"
-            className="group rounded-lg bg-white border border-gray-200 p-3 text-center hover:border-green-500 hover:shadow-md transition-all">
-            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center mx-auto mb-2 transition-transform group-hover:scale-110">
-              <Boxes size={14} className="text-white" />
-            </div>
-            <p className="font-mono text-xs font-semibold text-gray-800">{id}</p>
-            <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-400 mt-1">
-              RCSB <ExternalLink size={8} />
-            </span>
-          </a>
-        ))}
-      </div>
-    </Section>
+    <div className="space-y-4">
+      {/* Viewer */}
+      {selected && <PdbViewer pdbId={selected} />}
+
+      {/* PDB picker */}
+      <Section title={`${pdb_ids.length} estruturas resolvidas`}>
+        <p className="text-xs text-neutral-500 mb-3">
+          Clique numa estrutura para visualizar. Cartoon + ligantes co-cristalizados são úteis pra
+          análise de bolso, docking e estudos de resistência (variantes mutadas).
+        </p>
+        <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 max-h-72 overflow-y-auto pr-1">
+          {pdb_ids.map((id) => {
+            const isActive = id === selected
+            return (
+              <button
+                key={id}
+                onClick={() => setSelected(id)}
+                className={`group rounded-lg p-3 text-center transition-all border ${
+                  isActive
+                    ? 'bg-cyan-50 border-cyan-500 shadow-md'
+                    : 'bg-white border-gray-200 hover:border-cyan-300 hover:shadow-sm'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center mx-auto mb-2 transition-transform group-hover:scale-110 ${
+                  isActive ? 'bg-gradient-to-br from-cyan-600 to-cyan-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-700'
+                }`}>
+                  <Boxes size={14} className="text-white" />
+                </div>
+                <p className={`font-mono text-xs font-semibold ${isActive ? 'text-cyan-800' : 'text-gray-800'}`}>
+                  {id}
+                </p>
+                {isActive && (
+                  <span className="text-[9px] text-cyan-700 font-semibold uppercase tracking-wider mt-0.5 block">
+                    visualizando
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-[11px] text-neutral-500">
+          <span className="inline-flex items-center gap-1">
+            <ExternalLink size={10} /> Viewer powered by 3Dmol.js · dados RCSB PDB
+          </span>
+        </div>
+      </Section>
+    </div>
   )
 }
 

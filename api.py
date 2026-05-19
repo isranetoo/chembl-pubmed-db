@@ -365,7 +365,50 @@ def get_compound(chembl_id: str):
             c.molecular_formula,
             ROUND(c.mol_weight::numeric, 2) AS mol_weight,
             c.smiles,
+            c.inchi,
             c.inchi_key,
+
+            -- Metadata clínico/regulatório (migration 0004)
+            c.max_phase,
+            c.first_approval,
+            c.molecule_type,
+            c.oral, c.parenteral, c.topical,
+            c.black_box_warning,
+            c.withdrawn_flag, c.withdrawn_reason, c.withdrawn_year,
+            c.withdrawn_country, c.withdrawn_class,
+            c.prodrug, c.natural_product, c.therapeutic_flag,
+            c.first_in_class, c.orphan,
+            c.chirality, c.availability_type,
+            c.usan_stem, c.usan_stem_definition, c.usan_year,
+            c.np_likeness_score,
+
+            -- Sinônimos e ATC inline (evita round-trips do frontend)
+            COALESCE(
+                (SELECT jsonb_agg(jsonb_build_object(
+                            'synonym',  s.synonym,
+                            'syn_type', s.syn_type)
+                         ORDER BY s.syn_type, s.synonym)
+                 FROM compound_synonyms s
+                 WHERE s.compound_id = c.id),
+                '[]'::jsonb
+            ) AS synonyms,
+            COALESCE(
+                (SELECT jsonb_agg(jsonb_build_object(
+                            'level5',             a.level5,
+                            'level1',             a.level1,
+                            'level1_description', a.level1_description,
+                            'level2',             a.level2,
+                            'level2_description', a.level2_description,
+                            'level3',             a.level3,
+                            'level3_description', a.level3_description,
+                            'level4',             a.level4,
+                            'level4_description', a.level4_description)
+                         ORDER BY a.level5)
+                 FROM compound_atc a
+                 WHERE a.compound_id = c.id),
+                '[]'::jsonb
+            ) AS atc,
+
             c.created_at::text
         FROM compounds c
         WHERE c.chembl_id = %s
@@ -478,6 +521,8 @@ def get_compound_indications(
 def get_compound_mechanisms(chembl_id: str):
     compound_id = _resolve_compound_id(chembl_id)
 
+    # LATERAL pega o "primeiro" componente do target (geralmente o único —
+    # SINGLE PROTEIN), e expõe gene_symbol / accession diretamente.
     rows = db_query("""
         SELECT
             m.mec_id,
@@ -489,8 +534,18 @@ def get_compound_mechanisms(chembl_id: str):
             m.disease_efficacy,
             m.mechanism_comment,
             m.selectivity_comment,
-            m.binding_site_comment
+            m.binding_site_comment,
+            m.variant_sequence,
+            tc.gene_symbol,
+            tc.accession                       AS uniprot_accession
         FROM mechanisms m
+        LEFT JOIN LATERAL (
+            SELECT gene_symbol, accession
+            FROM target_components
+            WHERE target_id = m.target_id
+            ORDER BY component_id
+            LIMIT 1
+        ) tc ON TRUE
         WHERE m.compound_id = %s
         ORDER BY m.action_type, m.target_name
     """, (compound_id,))
@@ -506,9 +561,11 @@ def get_compound_mechanisms(chembl_id: str):
 )
 def get_compound_bioactivities(
     chembl_id:     str,
-    activity_type: Optional[str] = Query(None, description="Tipo: IC50, Ki, EC50..."),
-    page:          int           = Query(1,    ge=1),
-    size:          int           = Query(20,   ge=1, le=100),
+    activity_type: Optional[str]   = Query(None, description="Tipo: IC50, Ki, EC50..."),
+    assay_type:    Optional[str]   = Query(None, description="Tipo de ensaio: B (binding), F (functional), A (ADME), T (toxicity), P (physchem)"),
+    min_pchembl:   Optional[float] = Query(None, description="Filtra por pChEMBL mínimo (≥7 = potente <100nM)", ge=0, le=14),
+    page:          int             = Query(1,    ge=1),
+    size:          int             = Query(20,   ge=1, le=100),
 ):
     compound_id = _resolve_compound_id(chembl_id)
 
@@ -516,13 +573,37 @@ def get_compound_bioactivities(
         SELECT
             t.chembl_id AS target_chembl_id,
             t.name      AS target_name,
-            t.organism,
+            COALESCE(b.target_organism, t.organism)  AS organism,
+            tc.gene_symbol,
+            tc.accession                              AS uniprot_accession,
             b.activity_type,
             b.value,
             b.units,
-            b.relation
+            b.relation,
+            ROUND(b.pchembl_value::numeric, 2)       AS pchembl_value,
+            ROUND(b.standard_value::numeric, 4)      AS standard_value,
+            b.standard_units,
+            b.assay_chembl_id,
+            b.assay_type,
+            b.assay_description,
+            b.bao_label,
+            b.document_journal,
+            b.document_year,
+            ROUND(b.bei::numeric, 2)                 AS bei,
+            ROUND(b.le::numeric,  2)                 AS le,
+            ROUND(b.lle::numeric, 2)                 AS lle,
+            ROUND(b.sei::numeric, 2)                 AS sei,
+            b.data_validity_comment,
+            b.assay_variant_mutation
         FROM bioactivities b
         JOIN targets t ON t.id = b.target_id
+        LEFT JOIN LATERAL (
+            SELECT gene_symbol, accession
+            FROM target_components
+            WHERE target_id = t.id
+            ORDER BY component_id
+            LIMIT 1
+        ) tc ON TRUE
         WHERE b.compound_id = %s
     """
     params = [compound_id]
@@ -530,8 +611,15 @@ def get_compound_bioactivities(
     if activity_type:
         sql += " AND UPPER(b.activity_type) = UPPER(%s)"
         params.append(activity_type)
+    if assay_type:
+        sql += " AND UPPER(b.assay_type) = UPPER(%s)"
+        params.append(assay_type)
+    if min_pchembl is not None:
+        sql += " AND b.pchembl_value >= %s"
+        params.append(min_pchembl)
 
-    sql += " ORDER BY b.activity_type, b.value"
+    # Ordenação: mais potentes primeiro (pchembl desc); empata por activity_type.
+    sql += " ORDER BY b.pchembl_value DESC NULLS LAST, b.activity_type, b.value"
 
     result = _paginate(sql, params, page, size)
     result["chembl_id"] = chembl_id.upper()
@@ -837,6 +925,7 @@ def search(
 def stats():
     row = db_one("""
         SELECT
+            -- ── Núcleo ───────────────────────────────────────
             (SELECT COUNT(*) FROM compounds)                    AS compounds,
             (SELECT COUNT(*) FROM articles)                     AS articles,
             (SELECT COUNT(*) FILTER (WHERE abstract IS NOT NULL)
@@ -850,7 +939,52 @@ def stats():
             (SELECT COUNT(*) FROM admet_properties)             AS compounds_with_admet,
             (SELECT ROUND(AVG(qed_weighted)::numeric, 3)
              FROM admet_properties)                             AS avg_qed,
-            (SELECT MAX(pub_year) FROM articles)                AS latest_article_year
+            (SELECT MAX(pub_year) FROM articles)                AS latest_article_year,
+
+            -- ── Drug pipeline (migration 0004) ───────────────
+            (SELECT COUNT(*) FROM compounds WHERE max_phase = 4)     AS approved_drugs,
+            (SELECT COUNT(*) FROM compounds WHERE max_phase = 3)     AS phase3_drugs,
+            (SELECT COUNT(*) FROM compounds WHERE withdrawn_flag)    AS withdrawn_drugs,
+            (SELECT COUNT(*) FROM compounds WHERE black_box_warning) AS black_box_drugs,
+            (SELECT COUNT(*) FROM compounds WHERE oral)              AS oral_drugs,
+            (SELECT COUNT(*) FROM compounds WHERE parenteral)        AS parenteral_drugs,
+            (SELECT COUNT(*) FROM compounds WHERE first_in_class)    AS first_in_class_drugs,
+            (SELECT COUNT(*) FROM compounds WHERE orphan)            AS orphan_drugs,
+            (SELECT COUNT(DISTINCT molecule_type)
+             FROM compounds WHERE molecule_type IS NOT NULL)   AS distinct_molecule_types,
+            (SELECT COUNT(*) FROM compound_synonyms)           AS total_synonyms,
+            (SELECT COUNT(*) FROM compound_atc)                AS total_atc_codes,
+
+            -- ── Bioactivity quality (migration 0005) ─────────
+            (SELECT COUNT(*) FROM bioactivities
+             WHERE pchembl_value IS NOT NULL)                  AS bioactivities_with_pchembl,
+            (SELECT COUNT(*) FROM bioactivities
+             WHERE pchembl_value >= 7)                         AS potent_bioactivities,
+            (SELECT COUNT(*) FROM bioactivities
+             WHERE assay_variant_mutation IS NOT NULL)         AS bioactivities_with_mutation,
+            (SELECT COUNT(DISTINCT assay_type)
+             FROM bioactivities WHERE assay_type IS NOT NULL)  AS distinct_assay_types,
+            (SELECT COUNT(DISTINCT document_journal)
+             FROM bioactivities
+             WHERE document_journal IS NOT NULL)               AS distinct_journals,
+
+            -- ── Target enrichment (migration 0006) ───────────
+            (SELECT COUNT(*) FROM targets
+             WHERE tax_id IS NOT NULL)                         AS enriched_targets,
+            (SELECT COUNT(DISTINCT gene_symbol)
+             FROM target_components
+             WHERE gene_symbol IS NOT NULL)                    AS distinct_genes,
+            (SELECT COUNT(*) FROM target_xrefs
+             WHERE xref_src_db IN ('PDB', 'PDBe'))             AS total_pdb_structures,
+
+            -- ── Mechanism variants (migration 0007) ──────────
+            (SELECT COUNT(*) FROM mechanisms
+             WHERE variant_sequence IS NOT NULL)               AS mechanisms_with_variant,
+
+            -- ── Clinical Trials (migration 0003) ─────────────
+            (SELECT COUNT(*) FROM clinical_trials)             AS total_trials,
+            (SELECT COUNT(DISTINCT chembl_id)
+             FROM compound_clinical_trials)                    AS compounds_with_trials
     """)
     return row
 

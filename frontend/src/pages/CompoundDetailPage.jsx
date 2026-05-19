@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useCompound, useCompoundAdmet, useCompoundIndications, useCompoundMechanisms, useCompoundBioactivities, useCompoundArticles } from '../lib/hooks'
 import { formatNumber, getPhaseBadgeClass, phaseLabel, getPhaseColor } from '../lib/utils'
@@ -7,8 +7,11 @@ import Table from '../components/Table'
 import Pill from '../components/Pill'
 import EmptyState from '../components/EmptyState'
 import Section from '../components/Section'
+import Pagination from '../components/Pagination'
 import ClinicalTrialsTab from '../components/ClinicalTrialsTab'
-import { ArrowLeft, Atom, Activity, Shield, Zap, BookOpen, FlaskConical, CheckCircle, XCircle, ExternalLink, GitCompareArrows, Stethoscope } from 'lucide-react'
+
+const PAGE_SIZE = 10
+import { ArrowLeft, Atom, Activity, Shield, Zap, BookOpen, FlaskConical, CheckCircle, XCircle, ExternalLink, GitCompareArrows, Stethoscope, AlertTriangle, Ban, Pill as PillIcon, Tag } from 'lucide-react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
@@ -37,19 +40,33 @@ function MetricCard({ label, value, sub, color = 'white' }) {
 export default function CompoundDetailPage() {
   const { chemblId } = useParams()
   const [tab, setTab] = useState('overview')
+  const [indicationsPage, setIndicationsPage] = useState(1)
+  const [bioactivitiesPage, setBioactivitiesPage] = useState(1)
+  const [articlesPage, setArticlesPage] = useState(1)
+
+  // Trocar de composto reseta paginação de todas as abas.
+  useEffect(() => {
+    setIndicationsPage(1)
+    setBioactivitiesPage(1)
+    setArticlesPage(1)
+  }, [chemblId])
 
   const compoundQ = useCompound(chemblId)
   const admetQ = useCompoundAdmet(chemblId)
-  const indicationsQ = useCompoundIndications(chemblId, { size: 50, page: 1 })
+  // Set "full" pro chart do Overview (cap do backend é 200).
+  // O queryKey muda quando params muda → cache separado da query paginada.
+  const indicationsAllQ = useCompoundIndications(chemblId, { size: 200, page: 1 })
+  const indicationsQ = useCompoundIndications(chemblId, { size: PAGE_SIZE, page: indicationsPage })
   const mechanismsQ = useCompoundMechanisms(chemblId)
-  const bioactivitiesQ = useCompoundBioactivities(chemblId, { size: 20, page: 1 })
-  const articlesQ = useCompoundArticles(chemblId, { size: 10, page: 1, only_abstract: true })
+  const bioactivitiesQ = useCompoundBioactivities(chemblId, { size: PAGE_SIZE, page: bioactivitiesPage })
+  const articlesQ = useCompoundArticles(chemblId, { size: PAGE_SIZE, page: articlesPage, only_abstract: true })
 
   if (compoundQ.isLoading) return <Loader label="Carregando composto..." />
   if (compoundQ.error) return <div className="glass-card p-5 border-red-500/20 text-red-300 text-sm">{compoundQ.error.message}</div>
 
   const c = compoundQ.data
   const admet = admetQ.data
+  const indicationsAll = indicationsAllQ.data
   const indications = indicationsQ.data
   const mechanisms = mechanismsQ.data
   const bioactivities = bioactivitiesQ.data
@@ -63,14 +80,90 @@ export default function CompoundDetailPage() {
           <ArrowLeft size={14} /> Voltar
         </Link>
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400/60 mb-1 font-mono">{c.chembl_id}</p>
             <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-white" style={{ fontFamily: 'Outfit' }}>
               {c.name || 'Composto'}
             </h1>
+
+            {/* Clinical / regulatory badges */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-3">
+              {c.max_phase !== null && c.max_phase !== undefined && (
+                <Pill className={getPhaseBadgeClass(c.max_phase)}>
+                  {phaseLabel(c.max_phase)}
+                  {c.first_approval ? ` · ${c.first_approval}` : ''}
+                </Pill>
+              )}
+              {c.molecule_type && (
+                <Pill className="bg-white/[0.05] text-white/60 border-white/10">{c.molecule_type}</Pill>
+              )}
+              {c.oral && (
+                <Pill className="bg-blue-500/15 text-blue-300 border-blue-500/20">
+                  <PillIcon size={11} className="inline mr-1" />Oral
+                </Pill>
+              )}
+              {c.parenteral && (
+                <Pill className="bg-violet-500/15 text-violet-300 border-violet-500/20">Parenteral</Pill>
+              )}
+              {c.topical && (
+                <Pill className="bg-teal-500/15 text-teal-300 border-teal-500/20">Topical</Pill>
+              )}
+              {c.first_in_class && (
+                <Pill className="bg-emerald-500/15 text-emerald-300 border-emerald-500/20">First-in-class</Pill>
+              )}
+              {c.prodrug && (
+                <Pill className="bg-slate-500/15 text-slate-300 border-slate-500/20">Prodrug</Pill>
+              )}
+              {c.orphan && (
+                <Pill className="bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20">Orphan</Pill>
+              )}
+              {c.natural_product && (
+                <Pill className="bg-lime-500/15 text-lime-300 border-lime-500/20">Natural product</Pill>
+              )}
+              {c.black_box_warning && (
+                <Pill className="bg-amber-500/15 text-amber-300 border-amber-500/30">
+                  <AlertTriangle size={11} className="inline mr-1" />Black box warning
+                </Pill>
+              )}
+              {c.withdrawn_flag && (
+                <Pill className="bg-red-500/15 text-red-300 border-red-500/30" title={c.withdrawn_reason || ''}>
+                  <Ban size={11} className="inline mr-1" />
+                  Withdrawn{c.withdrawn_year ? ` · ${c.withdrawn_year}` : ''}
+                </Pill>
+              )}
+              {c.atc?.[0]?.level5 && (
+                <Pill className="bg-white/[0.05] text-white/55 border-white/10 font-mono" title={c.atc[0].level1_description || ''}>
+                  <Tag size={11} className="inline mr-1" />ATC {c.atc[0].level5}
+                </Pill>
+              )}
+            </div>
+
+            {/* Drug class (USAN stem) */}
+            {c.usan_stem_definition && (
+              <p className="text-xs text-white/40 mt-2">
+                Classe farmacológica: <span className="text-white/70">{c.usan_stem_definition}</span>
+                {c.usan_stem && <span className="text-white/30 font-mono"> ({c.usan_stem})</span>}
+              </p>
+            )}
+
+            {/* Trade names / synonyms */}
+            {c.synonyms?.length > 0 && (() => {
+              const trade = c.synonyms
+                .filter((s) => ['TRADE_NAME', 'OTHER', 'BRAND_NAME', 'MERCK_INDEX'].includes(s.syn_type))
+                .map((s) => s.synonym)
+                .filter((v, i, arr) => arr.indexOf(v) === i)
+                .slice(0, 6)
+              if (trade.length === 0) return null
+              return (
+                <p className="text-xs text-white/40 mt-1">
+                  Também conhecido como: <span className="text-white/65">{trade.join(', ')}</span>
+                </p>
+              )
+            })()}
           </div>
+
           {c.smiles && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-2 max-w-md">
+            <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-2 max-w-md flex-shrink-0">
               <p className="text-[10px] text-white/30 mb-0.5">SMILES</p>
               <code className="text-[11px] text-emerald-300/50 break-all font-mono">{c.smiles}</code>
             </div>
@@ -195,9 +288,9 @@ export default function CompoundDetailPage() {
 
             {/* Indications phase chart */}
             <Section title="Indicações por Fase">
-              {indicationsQ.isLoading ? <Loader /> : indications?.items?.length > 0 ? (() => {
+              {indicationsAllQ.isLoading ? <Loader /> : indicationsAll?.items?.length > 0 ? (() => {
                 const phaseCounts = {}
-                indications.items.forEach((ind) => {
+                indicationsAll.items.forEach((ind) => {
                   const lbl = phaseLabel(ind.max_phase)
                   phaseCounts[lbl] = (phaseCounts[lbl] || 0) + 1
                 })
@@ -226,7 +319,7 @@ export default function CompoundDetailPage() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <p className="text-xs text-white/25 text-center">{formatNumber(indications.total)} indicações totais</p>
+                    <p className="text-xs text-white/25 text-center">{formatNumber(indicationsAll.total)} indicações totais</p>
                   </>
                 )
               })() : <EmptyState description="Sem indicações registradas." />}
@@ -235,7 +328,7 @@ export default function CompoundDetailPage() {
 
           {/* Quick stats */}
           <div className="grid grid-cols-3 gap-3">
-            <MetricCard label="Indicações" value={formatNumber(indications?.total || 0)} />
+            <MetricCard label="Indicações" value={formatNumber(indicationsAll?.total || 0)} />
             <MetricCard label="Mecanismos" value={formatNumber(mechanisms?.total || 0)} />
             <MetricCard label="Artigos" value={formatNumber(articles?.total || 0)} />
           </div>
@@ -266,11 +359,19 @@ export default function CompoundDetailPage() {
       {tab === 'indications' && (
         <Section title="Indicações terapêuticas" delay={0}>
           {indicationsQ.isLoading ? <Loader /> : (
-            <Table columns={[
-              { key: 'mesh_heading', header: 'Indicação', render: (r) => r.mesh_heading || r.efo_term || '—' },
-              { key: 'efo_term', header: 'EFO' },
-              { key: 'max_phase', header: 'Fase', render: (r) => <Pill className={getPhaseBadgeClass(r.max_phase)}>{phaseLabel(r.max_phase)}</Pill> },
-            ]} rows={indications?.items || []} emptyMessage="Nenhuma indicação." />
+            <div className="space-y-3">
+              <Table columns={[
+                { key: 'mesh_heading', header: 'Indicação', render: (r) => r.mesh_heading || r.efo_term || '—' },
+                { key: 'efo_term', header: 'EFO' },
+                { key: 'max_phase', header: 'Fase', render: (r) => <Pill className={getPhaseBadgeClass(r.max_phase)}>{phaseLabel(r.max_phase)}</Pill> },
+              ]} rows={indications?.items || []} emptyMessage="Nenhuma indicação." />
+              <Pagination
+                page={indicationsPage}
+                pages={indications?.pages || 0}
+                onPrevious={() => setIndicationsPage((p) => Math.max(1, p - 1))}
+                onNext={() => setIndicationsPage((p) => Math.min(indications?.pages || 1, p + 1))}
+              />
+            </div>
           )}
         </Section>
       )}
@@ -282,9 +383,32 @@ export default function CompoundDetailPage() {
               {mechanisms.items.map((m) => (
                 <div key={m.mec_id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-5 transition-all hover:bg-white/[0.05]">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="text-sm font-semibold text-white/85">{m.mechanism_of_action || m.action_type || 'Mecanismo'}</h3>
-                      <p className="text-xs text-white/35 mt-1">{m.target_name || '—'}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <p className="text-xs text-white/35">{m.target_name || '—'}</p>
+                        {m.gene_symbol && (
+                          <span className="text-[10px] font-mono text-emerald-300/70 bg-emerald-500/10 border border-emerald-500/15 rounded px-1.5 py-0.5">
+                            {m.gene_symbol}
+                          </span>
+                        )}
+                        {m.uniprot_accession && (
+                          <a
+                            href={`https://www.uniprot.org/uniprotkb/${m.uniprot_accession}/entry`}
+                            target="_blank" rel="noreferrer"
+                            className="text-[10px] font-mono text-white/35 hover:text-white/70 transition-colors"
+                            title="UniProt"
+                          >
+                            {m.uniprot_accession} ↗
+                          </a>
+                        )}
+                        {m.variant_sequence?.mutation && (
+                          <span className="text-[10px] text-amber-300/80 font-mono bg-amber-500/10 border border-amber-500/20 rounded px-1.5 py-0.5"
+                                title={m.variant_sequence?.organism || ''}>
+                            mut: {m.variant_sequence.mutation}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {m.action_type && <Pill className="bg-violet-500/15 text-violet-300 border-violet-500/20">{m.action_type}</Pill>}
                   </div>
@@ -299,14 +423,119 @@ export default function CompoundDetailPage() {
       {tab === 'bioactivities' && (
         <Section title="Bioatividades" delay={0}>
           {bioactivitiesQ.isLoading ? <Loader /> : (
-            <Table columns={[
-              { key: 'target_name', header: 'Target' },
-              { key: 'organism', header: 'Organismo' },
-              { key: 'activity_type', header: 'Tipo' },
-              { key: 'value', header: 'Valor', render: (r) => formatNumber(r.value, { maximumFractionDigits: 2 }) },
-              { key: 'units', header: 'Unidade' },
-              { key: 'relation', header: 'Rel.' },
-            ]} rows={bioactivities?.items || []} emptyMessage="Nenhuma bioatividade." />
+            <div className="space-y-3">
+              <p className="text-[11px] text-white/30">
+                <span className="font-semibold text-white/50">pChEMBL</span> = −log₁₀(IC50/Ki em molar) — quanto maior, mais potente.
+                <span className="ml-2 text-emerald-400/70">≥ 8 alta</span>
+                <span className="ml-2 text-sky-400/70">7–8 boa</span>
+                <span className="ml-2 text-amber-400/70">6–7 moderada</span>
+                <span className="ml-2 text-white/30">&lt; 6 fraca</span>
+              </p>
+              <Table columns={[
+                {
+                  key: 'target_name',
+                  header: 'Target',
+                  render: (r) => (
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-white/80 truncate">{r.target_name || '—'}</span>
+                        {r.gene_symbol && (
+                          <span className="text-[10px] font-mono text-emerald-300/70 bg-emerald-500/10 border border-emerald-500/15 rounded px-1 flex-shrink-0">
+                            {r.gene_symbol}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {r.uniprot_accession && (
+                          <a
+                            href={`https://www.uniprot.org/uniprotkb/${r.uniprot_accession}/entry`}
+                            target="_blank" rel="noreferrer"
+                            className="text-[10px] font-mono text-white/35 hover:text-white/70 transition-colors"
+                            title="UniProt"
+                          >
+                            {r.uniprot_accession} ↗
+                          </a>
+                        )}
+                        {r.assay_variant_mutation && (
+                          <span className="text-[10px] text-amber-300/80 font-mono">mut: {r.assay_variant_mutation}</span>
+                        )}
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'organism',
+                  header: 'Organismo',
+                  render: (r) => <span className="text-white/50 text-xs italic">{r.organism || '—'}</span>,
+                },
+                {
+                  key: 'activity_type',
+                  header: 'Tipo',
+                  render: (r) => (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-white/80">{r.activity_type || '—'}</span>
+                      {r.assay_type && (
+                        <Pill className="bg-white/[0.04] text-white/45 border-white/10 !px-1.5 !py-0 !text-[10px]" title={
+                          { B: 'Binding', F: 'Functional', A: 'ADME', T: 'Toxicity', P: 'Physchem' }[r.assay_type] || r.assay_type
+                        }>{r.assay_type}</Pill>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'value',
+                  header: 'Valor',
+                  render: (r) => {
+                    const v = r.standard_value ?? r.value
+                    const u = r.standard_units || r.units
+                    return (
+                      <span className="font-mono text-xs text-white/80">
+                        {r.relation && r.relation !== '=' ? r.relation + ' ' : ''}
+                        {formatNumber(v, { maximumFractionDigits: 3 })} {u || ''}
+                      </span>
+                    )
+                  },
+                },
+                {
+                  key: 'pchembl_value',
+                  header: 'pChEMBL',
+                  render: (r) => {
+                    if (r.pchembl_value == null) return <span className="text-white/20">—</span>
+                    const p = Number(r.pchembl_value)
+                    const cls = p >= 8 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                              : p >= 7 ? 'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                              : p >= 6 ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                       : 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+                    return <Pill className={`${cls} font-mono`}>{p.toFixed(2)}</Pill>
+                  },
+                },
+                {
+                  key: 'document',
+                  header: 'Fonte',
+                  render: (r) => r.document_year || r.document_journal ? (
+                    <div className="text-[11px] text-white/40 truncate max-w-[160px]" title={r.document_journal || ''}>
+                      {r.document_journal || '—'}
+                      {r.document_year && <span className="text-white/30 ml-1">· {r.document_year}</span>}
+                    </div>
+                  ) : <span className="text-white/20">—</span>,
+                },
+                {
+                  key: 'le',
+                  header: 'LE',
+                  render: (r) => r.le != null ? (
+                    <span className="font-mono text-[11px] text-white/55" title={`BEI=${r.bei ?? '—'} | LLE=${r.lle ?? '—'} | SEI=${r.sei ?? '—'}`}>
+                      {Number(r.le).toFixed(2)}
+                    </span>
+                  ) : <span className="text-white/20">—</span>,
+                },
+              ]} rows={bioactivities?.items || []} emptyMessage="Nenhuma bioatividade." />
+              <Pagination
+                page={bioactivitiesPage}
+                pages={bioactivities?.pages || 0}
+                onPrevious={() => setBioactivitiesPage((p) => Math.max(1, p - 1))}
+                onNext={() => setBioactivitiesPage((p) => Math.min(bioactivities?.pages || 1, p + 1))}
+              />
+            </div>
           )}
         </Section>
       )}
@@ -336,6 +565,12 @@ export default function CompoundDetailPage() {
                   {a.abstract && <p className="mt-3 text-xs text-white/30 leading-relaxed line-clamp-3">{a.abstract.slice(0, 350)}...</p>}
                 </div>
               ))}
+              <Pagination
+                page={articlesPage}
+                pages={articles?.pages || 0}
+                onPrevious={() => setArticlesPage((p) => Math.max(1, p - 1))}
+                onNext={() => setArticlesPage((p) => Math.min(articles?.pages || 1, p + 1))}
+              />
             </div>
           )}
         </Section>

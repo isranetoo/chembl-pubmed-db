@@ -68,21 +68,42 @@ log = logging.getLogger(__name__)
 
 BATCH_SIZE = 500   # linhas por INSERT batch
 
-# Ordem de migração respeita dependências de FK
+# Ordem de migração respeita dependências de FK.
+#
+# Cada bloco abaixo agrupa tabelas pela migration que as introduziu, para
+# facilitar a manutenção quando uma migration nova for adicionada — basta
+# apendar o bloco respeitando as FKs encadeadas.
 TABLE_ORDER = [
+    # Núcleo (01_schema.sql)
     "compounds",                   # sem deps
     "targets",                     # sem deps
     "articles",                    # sem deps
+
+    # Metadata clínico/regulatório do composto (10_compound_metadata.sql)
+    "compound_synonyms",           # → compounds
+    "compound_atc",                # → compounds
+
+    # Enrichment do alvo (12_target_enrich.sql)
+    # target_xrefs.component_id referencia target_components.id, então a
+    # ordem (components → xrefs) é obrigatória.
+    "target_components",           # → targets
+    "target_xrefs",                # → target_components
+
+    # Resto do núcleo
     "bioactivities",               # → compounds, targets
     "article_compounds",           # → articles, compounds
     "indications",                 # → compounds
     "mechanisms",                  # → compounds, targets
     "admet_properties",            # → compounds
+
+    # Camada Clinical Trials (09_clinical_trials.sql)
     "clinical_trials",             # sem deps de outras tabelas do projeto
     "compound_clinical_trials",    # → compounds, clinical_trials
 ]
 
-# Arquivos de schema em ordem de aplicação
+# Arquivos de schema em ordem de aplicação. Devem ser numericamente
+# crescentes — se você adicionar uma migration nova em database/init/,
+# apenda aqui também (e em migrations/versions/, se for via Alembic).
 SCHEMA_FILES = [
     "database/init/01_schema.sql",
     "database/init/02_article_enrich.sql",
@@ -91,7 +112,12 @@ SCHEMA_FILES = [
     "database/init/05_admet.sql",
     "database/init/06_fts.sql",
     "database/init/07_materialized_views.sql",
+    "database/init/08_owkin_histopathology.sql",
     "database/init/09_clinical_trials.sql",
+    "database/init/10_compound_metadata.sql",
+    "database/init/11_bioactivity_enrich.sql",
+    "database/init/12_target_enrich.sql",
+    "database/init/13_mechanism_variants.sql",
 ]
 
 def _find_project_root() -> Path:

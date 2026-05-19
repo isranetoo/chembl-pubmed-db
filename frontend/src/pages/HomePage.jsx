@@ -1,10 +1,32 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, FlaskConical, Search, Crosshair, Newspaper, Activity, Sparkles, TrendingUp, Shield, BookOpen } from 'lucide-react'
+import {
+  ArrowRight, FlaskConical, Search, Crosshair, Activity,
+  Shield, BookOpen, Pill as PillIcon, AlertTriangle, Ban,
+  Award, Microscope, TestTube2, FileText, Dna, Boxes, Stethoscope, Zap,
+} from 'lucide-react'
 import { useStats } from '../lib/hooks'
 import { formatNumber } from '../lib/utils'
 import StatCard from '../components/StatCard'
 import Loader from '../components/Loader'
 import Section from '../components/Section'
+
+// Mini card usado nas seções temáticas — formato compacto.
+function MiniStat({ label, value, helper, icon: Icon, accent = 'text-white/80' }) {
+  return (
+    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 transition-all hover:bg-white/[0.05]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">{label}</p>
+          <p className={`text-xl font-bold ${accent}`} style={{ fontFamily: 'Outfit' }}>
+            {formatNumber(value)}
+          </p>
+          {helper && <p className="mt-1 text-[10px] text-white/25">{helper}</p>}
+        </div>
+        {Icon && <Icon size={14} className="text-white/25 flex-shrink-0 mt-1" />}
+      </div>
+    </div>
+  )
+}
 
 export default function HomePage() {
   const { data, isLoading, error } = useStats()
@@ -37,7 +59,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-sm lg:text-base text-white/40 leading-relaxed max-w-md">
-              Navegue por dados farmacológicos do ChEMBL e literatura científica do PubMed em uma interface unificada.
+              Navegue por dados farmacológicos do ChEMBL, ensaios clínicos da CT.gov e literatura do PubMed em uma interface unificada.
             </p>
           </div>
 
@@ -54,16 +76,91 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Stats grid */}
+      {/* Top-level stats grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Compostos" value={data.compounds} icon={FlaskConical} color="emerald" delay={0.05} />
+        <StatCard label="Compostos" value={data.compounds} icon={FlaskConical} color="emerald" delay={0.05}
+          helper={`${formatNumber(data.approved_drugs)} aprovados · ${formatNumber(data.compounds_with_admet)} com ADMET`} />
         <StatCard label="Artigos" value={data.articles} icon={BookOpen} color="sky" delay={0.1}
-          helper={`${formatNumber(data.articles_with_abstract)} com abstract`} />
+          helper={`${formatNumber(data.articles_with_abstract)} com abstract · até ${data.latest_article_year ?? '—'}`} />
         <StatCard label="Indicações aprovadas" value={data.approved_indications} icon={Shield} color="amber" delay={0.15}
           helper={`${formatNumber(data.indications)} total`} />
-        <StatCard label="Targets" value={data.targets} icon={Crosshair} color="violet" delay={0.2}
-          helper={`QED médio: ${data.avg_qed ?? '—'}`} />
+        <StatCard label="Ensaios clínicos" value={data.total_trials} icon={Stethoscope} color="rose" delay={0.2}
+          helper={`${formatNumber(data.compounds_with_trials)} compostos cobertos`} />
       </div>
+
+      {/* Drug pipeline */}
+      <Section title="Drug pipeline & segurança" delay={0.25}>
+        <p className="text-[11px] text-white/30 mb-3 -mt-1">
+          Status regulatório dos compostos do banco — dados de fase clínica, vias de administração, warnings FDA e drogas retiradas.
+        </p>
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          <MiniStat label="Aprovados (FDA)" value={data.approved_drugs} icon={Award}
+            accent="text-emerald-400" helper="max_phase = 4" />
+          <MiniStat label="Em Fase 3" value={data.phase3_drugs} icon={TestTube2}
+            accent="text-sky-400" helper="Última fase pré-aprovação" />
+          <MiniStat label="Black box" value={data.black_box_drugs} icon={AlertTriangle}
+            accent="text-amber-400" helper="Warning FDA grave" />
+          <MiniStat label="Withdrawn" value={data.withdrawn_drugs} icon={Ban}
+            accent="text-red-400" helper="Retiradas do mercado" />
+          <MiniStat label="Via oral" value={data.oral_drugs} icon={PillIcon}
+            accent="text-blue-300" />
+          <MiniStat label="Parenteral" value={data.parenteral_drugs} icon={PillIcon}
+            accent="text-violet-300" />
+          <MiniStat label="First-in-class" value={data.first_in_class_drugs} icon={Award}
+            accent="text-emerald-300" helper="Mecanismo inovador" />
+          <MiniStat label="Drogas órfãs" value={data.orphan_drugs} icon={Shield}
+            accent="text-fuchsia-300" helper="Doenças raras" />
+        </div>
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 mt-3">
+          <MiniStat label="Tipos moleculares" value={data.distinct_molecule_types} icon={Boxes}
+            helper="Small mol, antibody, …" />
+          <MiniStat label="Sinônimos (INN/BAN/trade)" value={data.total_synonyms} icon={FileText} />
+          <MiniStat label="Códigos ATC" value={data.total_atc_codes} icon={FileText}
+            helper="Classificação WHO" />
+        </div>
+      </Section>
+
+      {/* Bioactivity */}
+      <Section title="Bioatividade — qualidade dos dados" delay={0.3}>
+        <p className="text-[11px] text-white/30 mb-3 -mt-1">
+          Métricas padronizadas pra ranking de potência: pChEMBL ≥ 7 corresponde a IC₅₀ &lt; 100 nM (drug-like).
+          Ensaios em variantes mutadas (T315I etc) são essenciais pra estudar resistência.
+        </p>
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          <MiniStat label="Total bioatividades" value={data.bioactivities} icon={Activity} />
+          <MiniStat label="Com pChEMBL" value={data.bioactivities_with_pchembl} icon={TestTube2}
+            accent="text-sky-400"
+            helper={data.bioactivities ? `${Math.round(100*(data.bioactivities_with_pchembl/data.bioactivities))}% padronizadas` : ''} />
+          <MiniStat label="Potentes (pChEMBL ≥ 7)" value={data.potent_bioactivities} icon={Zap}
+            accent="text-emerald-400" helper="< 100 nM, drug-like" />
+          <MiniStat label="Em mutações" value={data.bioactivities_with_mutation} icon={Dna}
+            accent="text-amber-300" helper="Estudos de resistência" />
+          <MiniStat label="Tipos de assay" value={data.distinct_assay_types} icon={Microscope}
+            helper="B / F / A / T / P" />
+          <MiniStat label="Jornais distintos" value={data.distinct_journals} icon={BookOpen}
+            helper="Fontes literárias" />
+          <MiniStat label="Mecanismos" value={data.mechanisms} icon={Zap} />
+          <MiniStat label="Com variante anotada" value={data.mechanisms_with_variant} icon={Dna}
+            accent="text-amber-300" helper="variant_sequence" />
+        </div>
+      </Section>
+
+      {/* Targets */}
+      <Section title="Alvos biológicos enriquecidos" delay={0.35}>
+        <p className="text-[11px] text-white/30 mb-3 -mt-1">
+          Cada alvo conecta-se a UniProt (proteína), gene oficial (HGNC), estruturas 3D do PDB e anotações funcionais GO/Reactome.
+        </p>
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          <MiniStat label="Total targets" value={data.targets} icon={Crosshair} />
+          <MiniStat label="Enriquecidos" value={data.enriched_targets} icon={Crosshair}
+            accent="text-violet-400"
+            helper={data.targets ? `${Math.round(100*(data.enriched_targets/data.targets))}% com tax_id + UniProt` : ''} />
+          <MiniStat label="Genes únicos" value={data.distinct_genes} icon={Dna}
+            accent="text-emerald-400" helper="HGNC gene symbols" />
+          <MiniStat label="Estruturas PDB" value={data.total_pdb_structures} icon={Boxes}
+            accent="text-cyan-400" helper="Cristal/Cryo-EM" />
+        </div>
+      </Section>
 
       {/* Features grid */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -83,7 +180,7 @@ export default function HomePage() {
           {
             icon: Activity, color: 'amber',
             title: 'Perfis Completos',
-            desc: 'ADMET, indicações, mecanismos de ação, bioatividades e literatura em uma tela.',
+            desc: 'ADMET, indicações, mecanismos, bioatividades, trials e literatura em uma tela.',
             link: '/compounds',
           },
         ].map((item, i) => (
@@ -106,33 +203,35 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Quick stats row */}
+      {/* Endpoints / banco geral */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Banco de dados" delay={0.3}>
+        <Section title="Banco — qualidade & cobertura" delay={0.45}>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Mecanismos', value: data.mechanisms },
-              { label: 'Bioatividades', value: data.bioactivities },
-              { label: 'Com ADMET', value: data.compounds_with_admet },
-              { label: 'Ano mais recente', value: data.latest_article_year },
+              { label: 'QED médio', value: data.avg_qed, helper: 'Drug-likeness 0–1' },
+              { label: 'Compostos com ADMET', value: data.compounds_with_admet },
+              { label: 'Artigo mais recente', value: data.latest_article_year },
+              { label: 'Compostos com trials', value: data.compounds_with_trials },
             ].map((s) => (
               <div key={s.label} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4">
                 <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1">{s.label}</p>
                 <p className="text-xl font-bold text-white/80" style={{ fontFamily: 'Outfit' }}>{formatNumber(s.value)}</p>
+                {s.helper && <p className="text-[10px] text-white/25 mt-1">{s.helper}</p>}
               </div>
             ))}
           </div>
         </Section>
 
-        <Section title="Endpoints da API" delay={0.35}>
+        <Section title="Endpoints da API" delay={0.5}>
           <div className="space-y-2">
             {[
-              '/compounds — Listagem e filtros',
-              '/articles — Literatura científica',
-              '/targets — Alvos biológicos',
-              '/search — Full-text unificada',
-              '/stats — Métricas do banco',
-              '/compounds/{id}/admet — ADMET',
+              '/compounds — listagem + filtros (fase, QED, MW, Lipinski)',
+              '/compounds/{id} — detalhe + metadata clínico/ATC',
+              '/compounds/{id}/bioactivities — com pChEMBL, assay, gene, jornal',
+              '/compounds/{id}/mechanisms — com gene + variant_sequence',
+              '/compounds/{id}/trials — ClinicalTrials.gov sincronizado',
+              '/search — full-text unificada',
+              '/stats — métricas do banco (este dashboard)',
             ].map((ep) => (
               <div key={ep} className="flex items-center gap-3 rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2.5 text-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 flex-shrink-0" />

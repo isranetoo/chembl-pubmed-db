@@ -10,7 +10,25 @@
       "Bash(curl -sI \"https://clinicaltrials.gov/api/v2/studies?query.intr=1%2C2%2C3%2C4-TETRAHYDROISOQUINOLINE&pageSize=100&format=json\")",
       "Bash(\"c:\\\\Users\\\\Israel Neto\\\\Desktop\\\\DrugXpert\\\\chembl-pubmed-db\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import ast, pathlib; [ast.parse\\(pathlib.Path\\(p\\).read_text\\(encoding='utf-8'\\)\\) for p in ['scripts/populate_clinical_trials.py','populate/migrate_to_supabase.py']]; print\\('ok'\\)\")",
       "Bash(\"c:\\\\Users\\\\Israel Neto\\\\Desktop\\\\DrugXpert\\\\chembl-pubmed-db\\\\.venv\\\\Scripts\\\\python.exe\" scripts/populate_clinical_trials.py --help)",
-      "Bash(curl -sI -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://clinicaltrials.gov/api/v2/studies?query.intr=CHEMBL1&pageSize=100&format=json\")"
+      "Bash(curl -sI -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://clinicaltrials.gov/api/v2/studies?query.intr=CHEMBL1&pageSize=100&format=json\")",
+      "Bash('c:\\\\Users\\\\Israel Neto\\\\Desktop\\\\DrugXpert\\\\chembl-pubmed-db\\\\.venv\\\\Scripts\\\\python.exe' -c ' *)",
+      "Bash(node -e \"const fs=require\\('fs'\\);const c=fs.readFileSync\\('frontend/src/components/ClinicalTrialsTab.jsx','utf-8'\\);const c2=fs.readFileSync\\('frontend/src/pages/CompoundDetailPage.jsx','utf-8'\\);console.log\\('jsx files:', c.length, c2.length, 'bytes — read OK'\\);\")",
+      "mcp__claude_ai_ChEMBL__target_search",
+      "mcp__claude_ai_ChEMBL__drug_search",
+      "mcp__claude_ai_ChEMBL__get_bioactivity",
+      "mcp__claude_ai_ChEMBL__get_admet",
+      "mcp__claude_ai_ChEMBL__get_mechanism",
+      "mcp__claude_ai_ChEMBL__compound_search",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(p, encoding='utf-8'\\).read\\(\\)\\) for p in ['populate/chembl_client.py', 'populate/db.py', 'populate/populate.py', 'api.py', 'schemas.py', 'migrations/versions/0004_compound_metadata.py']]; print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('scripts/backfill_compound_metadata.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('populate/db.py', encoding='utf-8'\\).read\\(\\)\\); ast.parse\\(open\\('populate/populate.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(p, encoding='utf-8'\\).read\\(\\)\\) for p in ['populate/chembl_client.py', 'populate/db.py', 'populate/populate.py', 'migrations/versions/0005_bioactivity_enrich.py']]; print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(p, encoding='utf-8'\\).read\\(\\)\\) for p in ['populate/chembl_client.py', 'populate/db.py', 'populate/populate.py', 'api.py', 'schemas.py', 'migrations/versions/0005_bioactivity_enrich.py', 'scripts/backfill_bioactivity_enrich.py']]; print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(p, encoding='utf-8'\\).read\\(\\)\\) for p in ['populate/db.py', 'populate/populate.py']]; print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(p, encoding='utf-8'\\).read\\(\\)\\) for p in ['populate/chembl_client.py', 'populate/db.py', 'populate/populate.py', 'migrations/versions/0006_target_enrich.py', 'migrations/versions/0007_mechanism_variants.py']]; print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(p, encoding='utf-8'\\).read\\(\\)\\) for p in ['populate/chembl_client.py', 'populate/db.py', 'populate/populate.py', 'api.py', 'schemas.py', 'migrations/versions/0006_target_enrich.py', 'migrations/versions/0007_mechanism_variants.py', 'scripts/backfill_target_enrich.py']]; print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('populate/migrate_to_supabase.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(p, encoding='utf-8'\\).read\\(\\)\\) for p in ['api.py', 'schemas.py']]; print\\('OK'\\)\")"
     ]
   }
 }

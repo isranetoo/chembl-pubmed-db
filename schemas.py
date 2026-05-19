@@ -75,6 +75,38 @@ class StatsResponse(_Base):
     avg_qed:                 Optional[float] = None
     latest_article_year:     Optional[int]   = None
 
+    # ── Drug pipeline (migration 0004) ───────────────────────
+    approved_drugs:          int = 0
+    phase3_drugs:            int = 0
+    withdrawn_drugs:         int = 0
+    black_box_drugs:         int = 0
+    oral_drugs:              int = 0
+    parenteral_drugs:        int = 0
+    first_in_class_drugs:    int = 0
+    orphan_drugs:            int = 0
+    distinct_molecule_types: int = 0
+    total_synonyms:          int = 0
+    total_atc_codes:         int = 0
+
+    # ── Bioactivity quality (migration 0005) ────────────────
+    bioactivities_with_pchembl:  int = 0
+    potent_bioactivities:        int = 0
+    bioactivities_with_mutation: int = 0
+    distinct_assay_types:        int = 0
+    distinct_journals:           int = 0
+
+    # ── Target enrichment (migration 0006) ──────────────────
+    enriched_targets:        int = 0
+    distinct_genes:          int = 0
+    total_pdb_structures:    int = 0
+
+    # ── Mechanism variants (migration 0007) ─────────────────
+    mechanisms_with_variant: int = 0
+
+    # ── Clinical Trials (migration 0003) ────────────────────
+    total_trials:            int = 0
+    compounds_with_trials:   int = 0
+
 
 # ============================================================
 # Compostos
@@ -97,6 +129,23 @@ class CompoundListItem(_Base):
     total_articles:     int = 0
 
 
+class CompoundSynonym(_Base):
+    synonym:  str
+    syn_type: Optional[str] = None
+
+
+class CompoundAtc(_Base):
+    level5:             str
+    level1:             Optional[str] = None
+    level1_description: Optional[str] = None
+    level2:             Optional[str] = None
+    level2_description: Optional[str] = None
+    level3:             Optional[str] = None
+    level3_description: Optional[str] = None
+    level4:             Optional[str] = None
+    level4_description: Optional[str] = None
+
+
 class CompoundDetail(_Base):
     id:                 str
     chembl_id:          str
@@ -104,8 +153,37 @@ class CompoundDetail(_Base):
     molecular_formula:  Optional[str]   = None
     mol_weight:         Optional[float] = None
     smiles:             Optional[str]   = None
+    inchi:              Optional[str]   = None
     inchi_key:          Optional[str]   = None
     created_at:         Optional[str]   = None
+
+    # Metadata clínico/regulatório (migration 0004)
+    max_phase:            Optional[float] = None
+    first_approval:       Optional[int]   = None
+    molecule_type:        Optional[str]   = None
+    oral:                 Optional[bool]  = None
+    parenteral:           Optional[bool]  = None
+    topical:              Optional[bool]  = None
+    black_box_warning:    Optional[bool]  = None
+    withdrawn_flag:       Optional[bool]  = None
+    withdrawn_reason:     Optional[str]   = None
+    withdrawn_year:       Optional[int]   = None
+    withdrawn_country:    Optional[str]   = None
+    withdrawn_class:      Optional[str]   = None
+    prodrug:              Optional[bool]  = None
+    natural_product:      Optional[bool]  = None
+    therapeutic_flag:     Optional[bool]  = None
+    first_in_class:       Optional[bool]  = None
+    orphan:               Optional[bool]  = None
+    chirality:            Optional[int]   = None
+    availability_type:    Optional[int]   = None
+    usan_stem:            Optional[str]   = None
+    usan_stem_definition: Optional[str]   = None
+    usan_year:            Optional[int]   = None
+    np_likeness_score:    Optional[float] = None
+
+    synonyms: List[CompoundSynonym] = []
+    atc:      List[CompoundAtc]     = []
 
 
 class AdmetResponse(_Base):
@@ -165,6 +243,11 @@ class MechanismItem(_Base):
     selectivity_comment:  Optional[str]  = None
     binding_site_comment: Optional[str]  = None
 
+    # Target enrichment (migration 0006) + variant_sequence (0007)
+    gene_symbol:          Optional[str]  = None
+    uniprot_accession:    Optional[str]  = None
+    variant_sequence:     Optional[dict] = None
+
 
 class MechanismsResponse(_Base):
     chembl_id: str
@@ -180,6 +263,27 @@ class BioactivityItem(_Base):
     value:            Optional[float] = None
     units:            Optional[str]   = None
     relation:         Optional[str]   = None
+
+    # Target enrichment (migration 0006)
+    gene_symbol:       Optional[str] = None
+    uniprot_accession: Optional[str] = None
+
+    # Enriquecimento (migration 0005)
+    pchembl_value:         Optional[float] = None
+    standard_value:        Optional[float] = None
+    standard_units:        Optional[str]   = None
+    assay_chembl_id:       Optional[str]   = None
+    assay_type:            Optional[str]   = None    # B|F|A|T|P
+    assay_description:     Optional[str]   = None
+    bao_label:             Optional[str]   = None
+    document_journal:      Optional[str]   = None
+    document_year:         Optional[int]   = None
+    bei:                   Optional[float] = None
+    le:                    Optional[float] = None
+    lle:                   Optional[float] = None
+    sei:                   Optional[float] = None
+    data_validity_comment: Optional[str]   = None
+    assay_variant_mutation: Optional[str]  = None
 
 
 class BioactivitiesResponse(Page[BioactivityItem]):

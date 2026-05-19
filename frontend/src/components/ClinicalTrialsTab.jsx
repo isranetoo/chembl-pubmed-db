@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity, AlertCircle, Building2, CheckCircle2, ChevronRight,
   ExternalLink, FlaskConical, RefreshCw, TestTube, Users,
 } from 'lucide-react'
 import { useCompoundTrials, useSyncCompoundTrials } from '../lib/hooks'
 import EmptyState from './EmptyState'
+import Pagination from './Pagination'
+
+const PAGE_SIZE = 10
 
 // Mapa de cores por status — usado no badge dos cards.
 const STATUS_STYLES = {
@@ -148,20 +151,26 @@ function ErrorCard({ message, onRetry }) {
 export default function ClinicalTrialsTab({ chemblId, drugName }) {
   const [phaseFilter, setPhaseFilter] = useState(null)
   const [statusFilter, setStatusFilter] = useState(null)
+  const [page, setPage] = useState(1)
+
+  // Trocar filtro reseta pra página 1 — senão fica numa página vazia.
+  useEffect(() => { setPage(1) }, [phaseFilter, statusFilter])
 
   const params = useMemo(() => {
-    const p = {}
+    const p = { page, size: PAGE_SIZE }
     if (phaseFilter) p.phase = phaseFilter
     if (statusFilter) p.status = statusFilter
     return p
-  }, [phaseFilter, statusFilter])
+  }, [phaseFilter, statusFilter, page])
 
   const trialsQ = useCompoundTrials(chemblId, params)
   const syncMut = useSyncCompoundTrials(chemblId)
 
   const data = trialsQ.data
   const kpis = data?.kpis || {}
-  const trials = data?.trials || []
+  const items = data?.items || []
+  const pages = data?.pages || 0
+  const total = data?.total || 0
   const isSyncing = syncMut.isPending
   const isLoading = trialsQ.isLoading
 
@@ -252,12 +261,29 @@ export default function ClinicalTrialsTab({ chemblId, drugName }) {
             {isSyncing ? 'Buscando...' : 'Buscar trials agora'}
           </button>
         </div>
-      ) : trials.length === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyState description="Nenhum trial bate com os filtros." />
       ) : (
-        <div className="space-y-3">
-          {trials.map((t) => <TrialCard key={t.nct_id} trial={t} />)}
-        </div>
+        <>
+          <div className="flex items-center justify-between px-1 text-[11px] text-white/40">
+            <span>
+              Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} de{' '}
+              <span className="text-white/70 font-medium">{total}</span>
+            </span>
+            {trialsQ.isFetching && !isLoading && (
+              <span className="text-white/30">carregando...</span>
+            )}
+          </div>
+          <div className="space-y-3">
+            {items.map((t) => <TrialCard key={t.nct_id} trial={t} />)}
+          </div>
+          <Pagination
+            page={page}
+            pages={pages}
+            onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(pages, p + 1))}
+          />
+        </>
       )}
 
       {/* Footer attribution */}

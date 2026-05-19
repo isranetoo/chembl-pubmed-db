@@ -48,14 +48,16 @@ def create_clinical_trials_routes(app, db_query, db_one, _resolve_compound_id):
         chembl_id: str,
         status:    str | None = Query(None, description="Filtrar por status (ex: RECRUITING)"),
         phase:     str | None = Query(None, description="Filtrar por fase (ex: PHASE3)"),
-        limit:     int        = Query(50, ge=1, le=500),
+        page:      int        = Query(1,  ge=1),
+        size:      int        = Query(10, ge=1, le=100),
     ):
         # _resolve_compound_id já retorna 404 quando não existe; descartamos o UUID.
         _resolve_compound_id(chembl_id)
         cid = chembl_id.upper()
 
-        # KPIs vêm da view agregada. Composto sem nenhum sync ainda → COALESCE
-        # zera tudo e a resposta sai 200 com total_trials=0 (requisito do spec).
+        # KPIs vêm da view agregada — totais sempre brutos, sem aplicar
+        # os filtros de paginação. Composto sem sync ainda → COALESCE
+        # zera tudo e a resposta sai 200 com total_trials=0.
         kpi_row = db_one(
             """
             SELECT
@@ -76,8 +78,31 @@ def create_clinical_trials_routes(app, db_query, db_one, _resolve_compound_id):
             "latest_trial_start": None,
         }
 
-        rows = db_query(
-            """
+        # Filtros aplicados no WHERE pra COUNT e SELECT baterem.
+        where = ["cct.chembl_id = %s"]
+        params: list = [cid]
+        if status:
+            where.append("ct.status = %s::trial_status")
+            params.append(status.upper())
+        if phase:
+            where.append("%s = ANY(ct.phases::text[])")
+            params.append(phase.upper())
+        where_sql = " AND ".join(where)
+
+        count_row = db_one(
+            f"""
+            SELECT COUNT(*) AS total
+            FROM compound_clinical_trials cct
+            JOIN clinical_trials ct ON ct.nct_id = cct.nct_id
+            WHERE {where_sql}
+            """,
+            params,
+        )
+        total = (count_row or {}).get("total", 0)
+        pages = (total + size - 1) // size if total else 0
+
+        items = db_query(
+            f"""
             SELECT
                 ct.nct_id,
                 ct.title,
@@ -98,27 +123,21 @@ def create_clinical_trials_routes(app, db_query, db_one, _resolve_compound_id):
                 ct.last_synced_at::text             AS last_synced_at
             FROM compound_clinical_trials cct
             JOIN clinical_trials ct ON ct.nct_id = cct.nct_id
-            WHERE cct.chembl_id = %s
+            WHERE {where_sql}
             ORDER BY cct.match_confidence DESC, ct.start_date DESC NULLS LAST
+            LIMIT %s OFFSET %s
             """,
-            (cid,),
+            params + [size, (page - 1) * size],
         )
-
-        # Filtros aplicados em Python — volume por composto é baixo
-        # (ordens de centenas no pior caso). Evita complicar a query.
-        if status:
-            wanted = status.upper()
-            rows = [r for r in rows if (r.get("status") or "") == wanted]
-        if phase:
-            wanted = phase.upper()
-            rows = [r for r in rows if wanted in (r.get("phases") or [])]
-
-        rows = rows[:limit]
 
         return {
             "chembl_id": cid,
             "kpis":      kpi_row,
-            "trials":    rows,
+            "page":      page,
+            "size":      size,
+            "total":     total,
+            "pages":     pages,
+            "items":     items,
         }
 
     # ── 2. POST sync ─────────────────────────────────────────────────

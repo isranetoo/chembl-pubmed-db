@@ -164,6 +164,104 @@ npm run dev
 > Abre em: `http://localhost:5173`
 >
 > O frontend consome a API do Passo 10, então a API precisa estar rodando.
+>
+> No perfil do composto, abas disponíveis: **Overview, ADMET, Indicações, Mecanismos, Bioatividades, Clinical Status, Artigos**. A aba "Clinical Status" começa vazia — clique em **Buscar trials agora** para puxar dados da ClinicalTrials.gov.
+
+---
+
+## Atualizando após git pull (banco já populado)
+
+Os arquivos em `database/init/*.sql` só rodam automaticamente quando o volume do Postgres está **vazio**. Se você puxou mudanças que incluem uma migration nova (ex: `09_clinical_trials.sql`) e seu banco já está populado, aplique-a manualmente:
+
+```powershell
+# Aplica todos os scripts numerados em database/init no banco existente.
+# Todos são idempotentes — rodar duas vezes não quebra nada.
+Get-Content database\init\09_clinical_trials.sql | docker exec -i chembl_pubmed_db psql -U admin -d chembl_pubmed
+```
+
+> Use o mesmo padrão para futuras migrations `10_*.sql`, `11_*.sql`, etc. — basta trocar o nome do arquivo.
+
+Depois, atualize as dependências Python e reinicie a API:
+
+```powershell
+pip install -r requirements.txt
+# Ctrl+C no terminal do uvicorn e suba de novo
+uvicorn api:app --reload --port 8000
+```
+
+> Se o front estava aberto, basta dar refresh — o Vite faz hot-reload e o React Query rebusca.
+
+---
+
+## Camada Clinical Trials — popular um composto
+
+A aba **Clinical Status** carrega vazia até o composto ter sido sincronizado pelo menos uma vez. Para popular pela linha de comando (sem usar o front):
+
+```powershell
+# Sincroniza usando compounds.name como termo de busca na CT.gov
+curl -X POST http://localhost:8000/compounds/CHEMBL941/trials/sync
+
+# Ou força um nome específico (útil quando o name no banco é IUPAC)
+curl -X POST "http://localhost:8000/compounds/CHEMBL941/trials/sync?drug_name=imatinib"
+
+# Lê o cache (não bate na CT.gov)
+curl http://localhost:8000/compounds/CHEMBL941/trials
+
+# Com filtros
+curl "http://localhost:8000/compounds/CHEMBL941/trials?phase=PHASE3&status=RECRUITING"
+```
+
+> Imatinib (CHEMBL941) retorna ~700 trials e o sync leva ~20s. O endpoint cacheia tudo localmente — chamadas seguintes ao GET são instantâneas.
+
+---
+
+## Camada Clinical Trials — bulk populate de todos os compostos
+
+Igual a `populate.py` faz pra ChEMBL/PubMed/ADMET, o script abaixo percorre **todos** os compostos com `name` definido e sincroniza com a CT.gov:
+
+```powershell
+# Teste rápido com 5 compostos
+python scripts/populate_clinical_trials.py --limit 5
+
+# Rodar tudo (com pausa de 0.5s entre compostos — default)
+python scripts/populate_clinical_trials.py
+
+# Pausa maior pra ser educado com a CT.gov
+python scripts/populate_clinical_trials.py --sleep 1.0
+
+# Retomar do meio (caiu? pula quem já tem trials cacheados)
+python scripts/populate_clinical_trials.py --skip-synced
+
+# Retomar a partir de um chembl_id específico
+python scripts/populate_clinical_trials.py --start-from CHEMBL2000
+
+# Só um composto, forçando o nome de busca
+python scripts/populate_clinical_trials.py --only CHEMBL941 --drug-name imatinib
+
+# Ver o que seria processado, sem chamar a CT.gov
+python scripts/populate_clinical_trials.py --dry-run --limit 20
+```
+
+> Cada composto roda em **transação isolada** — erro em um não derruba o batch.
+> Compostos com nome IUPAC (ex: `1,2,3,4-TETRAHYDROISOQUINOLINE`) tipicamente retornam 0 trials e são contados como "Sem trials" no resumo final — não é erro.
+>
+> Para uma base com ~50 compostos, contar ~10-20 minutos (depende dos drugs populares como aspirin/imatinib que têm centenas de trials cada).
+
+---
+
+## Migrar tabelas novas pro Supabase
+
+O `migrate_to_supabase.py` já foi atualizado pra incluir `clinical_trials` e `compound_clinical_trials` na ordem correta de FK, e aplica `09_clinical_trials.sql` no schema do destino. Não há passo extra — basta rodar como antes:
+
+```powershell
+$env:DATABASE_URL = "postgresql://postgres.xxx:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+python migrate_to_supabase.py
+```
+
+> Se você só quer migrar a camada nova (sem mexer no resto), use o flag `--only`:
+> ```powershell
+> python migrate_to_supabase.py --only clinical_trials --only compound_clinical_trials
+> ```
 
 ---
 
@@ -230,7 +328,7 @@ python -m populate.scraper --start 1 --end 15000 --sleep 0.2
 ```powershell
 # 1. Descobrir novos compostos e inserir na seed_compounds
 python -m populate.scraper --start 10000 --end 15000
-
+python -m populate.scraper --start 30001 --end 40000 --sleep 0.2
 
 # 2. Popular os dados completos (ADMET, bioatividades, mecanismos, PubMed)
 python populate.py
@@ -297,6 +395,8 @@ uvicorn api:app --reload --port 8000   # API conecta no Supabase
 |------|---------------|---------|
 | `tabela seed_compounds não existe` | Migration não aplicada | Rode o Passo 6 |
 | `connection refused` na porta 5432 | Docker não está rodando | Rode o Passo 5 |
+| `relation "clinical_trials" does not exist` | Migration `09_clinical_trials.sql` não rodou no banco existente | Veja a seção "Atualizando após git pull" |
+| `502 Falha consultando ClinicalTrials.gov` | Rede / API da CT.gov fora OU WAF temporariamente bloqueando | Cliente já tenta 3x com backoff de 5s/10s/20s; se ainda assim falhar, espere alguns minutos e tente de novo |
 | `ModuleNotFoundError: No module named 'populate'` | Python não encontra a raiz do projeto ao rodar scripts da pasta `scripts/` | Já corrigido — veja nota abaixo |
 | `ModuleNotFoundError` (outro) | Ambiente virtual não ativo | Ative o `.venv` (Passo 3) |
 | `uvicorn: command not found` | Dependências não instaladas | Rode o Passo 4 |

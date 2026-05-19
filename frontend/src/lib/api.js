@@ -9,8 +9,8 @@ function buildUrl(path, params = {}) {
   return url.toString()
 }
 
-async function request(path, params = {}) {
-  const response = await fetch(buildUrl(path, params))
+async function request(path, params = {}, init = {}) {
+  const response = await fetch(buildUrl(path, params), init)
   if (!response.ok) {
     const errorPayload = await response.json().catch(() => ({}))
     throw new Error(errorPayload.detail || 'Erro ao consultar a API.')
@@ -27,6 +27,9 @@ export const api = {
   getCompoundMechanisms: (chemblId) => request(`/compounds/${chemblId}/mechanisms`),
   getCompoundBioactivities: (chemblId, params) => request(`/compounds/${chemblId}/bioactivities`, params),
   getCompoundArticles: (chemblId, params) => request(`/compounds/${chemblId}/articles`, params),
+  getCompoundTrials: (chemblId, params) => request(`/compounds/${chemblId}/trials`, params),
+  syncCompoundTrials: (chemblId, params) =>
+    request(`/compounds/${chemblId}/trials/sync`, params, { method: 'POST' }),
   getArticles: (params) => request('/articles', params),
   getTargets: (params) => request('/targets', params),
   search: (params) => request('/search', params),

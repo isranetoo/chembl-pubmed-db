@@ -263,3 +263,50 @@ class SearchResponse(_Base):
     total: int
     pages: int
     items: List[SearchHit]
+
+
+# ============================================================
+# Ensaios clínicos (ClinicalTrials.gov)
+# ============================================================
+
+class TrialKPIs(_Base):
+    total_trials:        int               = 0
+    recruiting_trials:   int               = 0
+    completed_trials:    int               = 0
+    phase3_trials:       int               = 0
+    phase4_trials:       int               = 0
+    unique_sponsors:     int               = 0
+    latest_trial_start:  Optional[str]     = None
+
+
+class TrialRow(_Base):
+    nct_id:                   str
+    title:                    Optional[str]       = None
+    status:                   Optional[str]       = None
+    phases:                   Optional[List[str]] = None
+    conditions:               Optional[List[str]] = None
+    interventions:            Optional[List[str]] = None
+    sponsor:                  Optional[str]       = None
+    enrollment:               Optional[int]       = None
+    start_date:               Optional[str]       = None
+    primary_completion_date:  Optional[str]       = None
+    locations_count:          Optional[int]       = 0
+    study_type:               Optional[str]       = None
+    primary_endpoint:         Optional[str]       = None
+    intervention_name:        Optional[str]       = None
+    match_method:             Optional[str]       = None
+    match_confidence:         Optional[float]     = None
+    last_synced_at:           Optional[str]       = None
+
+
+class TrialsResponse(Page[TrialRow]):
+    chembl_id: str
+    kpis:      TrialKPIs
+
+
+class SyncResponse(_Base):
+    chembl_id:        str
+    drug_name:        str
+    trials_fetched:   int
+    trials_upserted:  int
+    links_created:    int

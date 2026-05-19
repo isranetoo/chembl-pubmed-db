@@ -44,6 +44,20 @@ depends_on = None
 INIT_DIR = Path(__file__).resolve().parents[2] / "database" / "init"
 
 
+# Arquivos congelados como parte do baseline. Qualquer SQL novo em
+# `database/init/` (09 em diante) deve virar uma migration Alembic dedicada —
+# não estende esta lista. Veja 0003_clinical_trials.py como exemplo.
+_BASELINE_SQL_FILES = (
+    "01_schema.sql",
+    "02_article_enrich.sql",
+    "03_indications.sql",
+    "04_mechanisms.sql",
+    "05_admet.sql",
+    "06_fts.sql",
+    "07_materialized_views.sql",
+    "08_owkin_histopathology.sql",
+)
+
 _BASELINE_TABLES = (
     "compounds",
     "targets",
@@ -90,8 +104,10 @@ def upgrade() -> None:
         return
 
     if not existing:
-        # Banco vazio — executa todos os SQLs em ordem.
-        for sql_path in sorted(INIT_DIR.glob("*.sql")):
+        # Banco vazio — executa os SQLs do baseline na ordem numérica.
+        # SQLs posteriores (09+) são aplicados pelas próprias migrations.
+        for filename in _BASELINE_SQL_FILES:
+            sql_path = INIT_DIR / filename
             cur.execute(sql_path.read_text(encoding="utf-8"))
         return
 

@@ -7,7 +7,8 @@ import Table from '../components/Table'
 import Pill from '../components/Pill'
 import EmptyState from '../components/EmptyState'
 import Section from '../components/Section'
-import { ArrowLeft, Atom, Activity, Shield, Zap, BookOpen, FlaskConical, CheckCircle, XCircle, ExternalLink, GitCompareArrows } from 'lucide-react'
+import ClinicalTrialsTab from '../components/ClinicalTrialsTab'
+import { ArrowLeft, Atom, Activity, Shield, Zap, BookOpen, FlaskConical, CheckCircle, XCircle, ExternalLink, GitCompareArrows, Stethoscope } from 'lucide-react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
@@ -19,6 +20,7 @@ const tabs = [
   { key: 'indications', label: 'Indicações', icon: Shield },
   { key: 'mechanisms', label: 'Mecanismos', icon: Zap },
   { key: 'bioactivities', label: 'Bioatividades', icon: FlaskConical },
+  { key: 'trials', label: 'Clinical Status', icon: Stethoscope },
   { key: 'articles', label: 'Artigos', icon: BookOpen },
 ]
 
@@ -306,6 +308,12 @@ export default function CompoundDetailPage() {
               { key: 'relation', header: 'Rel.' },
             ]} rows={bioactivities?.items || []} emptyMessage="Nenhuma bioatividade." />
           )}
+        </Section>
+      )}
+
+      {tab === 'trials' && (
+        <Section title="Clinical Status" delay={0}>
+          <ClinicalTrialsTab chemblId={c.chembl_id} drugName={c.name} />
         </Section>
       )}
 

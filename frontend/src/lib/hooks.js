@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 
 export function useStats() {
@@ -33,4 +33,18 @@ export function useTargets(params) {
 }
 export function useGlobalSearch(params) {
   return useQuery({ queryKey: ['search', params], queryFn: () => api.search(params), enabled: Boolean(params?.q) })
+}
+export function useCompoundTrials(chemblId, params = {}) {
+  return useQuery({
+    queryKey: ['compound-trials', chemblId, params],
+    queryFn: () => api.getCompoundTrials(chemblId, params),
+    enabled: !!chemblId,
+  })
+}
+export function useSyncCompoundTrials(chemblId) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (drugName) => api.syncCompoundTrials(chemblId, drugName ? { drug_name: drugName } : {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['compound-trials', chemblId] }),
+  })
 }

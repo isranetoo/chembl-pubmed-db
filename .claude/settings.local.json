@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Owkin__cohort_description",
+      "Bash(c:\\\\Users\\\\Israel Neto\\\\Desktop\\\\DrugXpert\\\\chembl-pubmed-db\\\\.venv\\\\Scripts\\\\python.exe *)",
+      "Bash(curl -sI \"https://clinicaltrials.gov/api/v2/studies?query.intr=imatinib&pageSize=1&format=json\")",
+      "Bash(curl -sI -A \"DrugXpert/1.0 \\(https://github.com/isranetoo\\)\" \"https://clinicaltrials.gov/api/v2/studies?query.intr=imatinib&pageSize=1&format=json\")",
+      "Bash(curl -sI -A \"python-httpx/0.28.1\" \"https://clinicaltrials.gov/api/v2/studies?query.intr=1%2C2%2C3%2C4-TETRAHYDROISOQUINOLINE&pageSize=100&format=json\")",
+      "Bash(curl -sI -A \"DrugXpert/1.0\" \"https://clinicaltrials.gov/api/v2/studies?query.intr=1%2C2%2C3%2C4-TETRAHYDROISOQUINOLINE&pageSize=100&format=json\")",
+      "Bash(curl -sI \"https://clinicaltrials.gov/api/v2/studies?query.intr=1%2C2%2C3%2C4-TETRAHYDROISOQUINOLINE&pageSize=100&format=json\")",
+      "Bash(\"c:\\\\Users\\\\Israel Neto\\\\Desktop\\\\DrugXpert\\\\chembl-pubmed-db\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import ast, pathlib; [ast.parse\\(pathlib.Path\\(p\\).read_text\\(encoding='utf-8'\\)\\) for p in ['scripts/populate_clinical_trials.py','populate/migrate_to_supabase.py']]; print\\('ok'\\)\")",
+      "Bash(\"c:\\\\Users\\\\Israel Neto\\\\Desktop\\\\DrugXpert\\\\chembl-pubmed-db\\\\.venv\\\\Scripts\\\\python.exe\" scripts/populate_clinical_trials.py --help)",
+      "Bash(curl -sI -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://clinicaltrials.gov/api/v2/studies?query.intr=CHEMBL1&pageSize=100&format=json\")"
+    ]
+  }
+}

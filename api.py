@@ -864,6 +864,14 @@ create_owkin_routes(app, db_query, db_one, _resolve_compound_id)
 
 
 # ============================================================
+# Rotas — ensaios clínicos (ClinicalTrials.gov v2)
+# ============================================================
+
+from clinical_trials_routes import create_clinical_trials_routes
+create_clinical_trials_routes(app, db_query, db_one, _resolve_compound_id)
+
+
+# ============================================================
 # Ponto de entrada
 # ============================================================
 

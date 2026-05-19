@@ -70,14 +70,16 @@ BATCH_SIZE = 500   # linhas por INSERT batch
 
 # Ordem de migração respeita dependências de FK
 TABLE_ORDER = [
-    "compounds",           # sem deps
-    "targets",             # sem deps
-    "articles",            # sem deps
-    "bioactivities",       # → compounds, targets
-    "article_compounds",   # → articles, compounds
-    "indications",         # → compounds
-    "mechanisms",          # → compounds, targets
-    "admet_properties",    # → compounds
+    "compounds",                   # sem deps
+    "targets",                     # sem deps
+    "articles",                    # sem deps
+    "bioactivities",               # → compounds, targets
+    "article_compounds",           # → articles, compounds
+    "indications",                 # → compounds
+    "mechanisms",                  # → compounds, targets
+    "admet_properties",            # → compounds
+    "clinical_trials",             # sem deps de outras tabelas do projeto
+    "compound_clinical_trials",    # → compounds, clinical_trials
 ]
 
 # Arquivos de schema em ordem de aplicação
@@ -89,6 +91,7 @@ SCHEMA_FILES = [
     "database/init/05_admet.sql",
     "database/init/06_fts.sql",
     "database/init/07_materialized_views.sql",
+    "database/init/09_clinical_trials.sql",
 ]
 
 def _find_project_root() -> Path:

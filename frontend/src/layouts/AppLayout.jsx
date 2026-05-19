@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Dna, Sparkles, GitCompareArrows } from 'lucide-react'
+import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Sparkles, GitCompareArrows } from 'lucide-react'
+
+const LOGO_SRC = '/assets/img/logo.png'
 
 const navigation = [
   { to: '/', label: 'Dashboard', icon: Database },
@@ -48,8 +50,8 @@ export default function AppLayout() {
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-slate-950/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-            <Dna size={16} className="text-slate-950" />
+          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center overflow-hidden">
+            <img src={LOGO_SRC} alt="DrugXpert" className="w-7 h-7 object-contain" />
           </div>
           <span className="font-semibold text-sm" style={{ fontFamily: 'Outfit' }}>DrugXpert</span>
         </div>
@@ -70,8 +72,8 @@ export default function AppLayout() {
             {/* Logo */}
             <div className="mb-8 animate-fade-in-up">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <Dna size={20} className="text-slate-950" />
+                <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400/15 to-teal-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg shadow-emerald-500/10 overflow-hidden">
+                  <img src={LOGO_SRC} alt="DrugXpert logo" className="w-9 h-9 object-contain" />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold tracking-tight" style={{ fontFamily: 'Outfit' }}>DrugXpert</h1>

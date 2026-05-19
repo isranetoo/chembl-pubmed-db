@@ -63,6 +63,13 @@ export default function HomePage() {
             </p>
           </div>
 
+          <div className="hidden lg:flex relative items-center justify-center w-44 h-44 flex-shrink-0">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-500/10 blur-2xl" />
+            <div className="relative w-40 h-40 rounded-3xl bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-emerald-500/15 backdrop-blur-xl flex items-center justify-center shadow-2xl shadow-emerald-500/10">
+              <img src="/assets/img/logo.png" alt="DrugXpert" className="w-28 h-28 object-contain drop-shadow-2xl" />
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-3">
             <Link to="/compounds"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98]">

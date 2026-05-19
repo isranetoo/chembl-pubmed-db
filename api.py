@@ -253,6 +253,11 @@ def root():
             "GET /targets/{chembl_id}",
             "GET /targets/{chembl_id}/compounds",
             "GET /targets/{chembl_id}/bioactivities",
+            "GET /trials",
+            "GET /trials/stats",
+            "GET /trials/sponsors",
+            "GET /trials/conditions",
+            "GET /trials/endpoints/analyze",
             "GET /search",
             "GET /stats",
         ],
@@ -1240,6 +1245,14 @@ create_owkin_routes(app, db_query, db_one, _resolve_compound_id)
 
 from clinical_trials_routes import create_clinical_trials_routes
 create_clinical_trials_routes(app, db_query, db_one, _resolve_compound_id)
+
+
+# ============================================================
+# Rotas — Clinical Trials globais (cross-composto)
+# ============================================================
+
+from global_trials_routes import create_global_trials_routes
+create_global_trials_routes(app, db_query, db_one)
 
 
 # ============================================================

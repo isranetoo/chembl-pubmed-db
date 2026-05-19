@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
-import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Sparkles, GitCompareArrows, BarChart3, Wrench } from 'lucide-react'
+import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Sparkles, GitCompareArrows, BarChart3, Wrench, Microscope, Stethoscope } from 'lucide-react'
 
 const LOGO_SRC = '/assets/img/logo.png'
 
@@ -12,6 +12,10 @@ const navigation = [
   { to: '/tools', label: 'Ferramentas', icon: Wrench },
   { to: '/articles', label: 'Artigos', icon: Newspaper },
   { to: '/targets', label: 'Targets', icon: Crosshair },
+  { to: '/trials', label: 'Trials', icon: Stethoscope },
+  // Histopatologia: oculta enquanto o pipeline Owkin não preenche owkin_cohort_stats/owkin_slides.
+  // Rotas /histopathology e /histopathology/:cohort continuam acessíveis via URL direta.
+  // { to: '/histopathology', label: 'Histopatologia', icon: Microscope },
   { to: '/search', label: 'Busca Global', icon: Search },
 ]
 

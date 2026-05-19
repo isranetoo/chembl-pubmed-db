@@ -65,3 +65,55 @@ export function useSyncCompoundTrials(chemblId) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['compound-trials', chemblId] }),
   })
 }
+
+// ── Clinical Trials — global ───────────────────────────────────
+export function useTrials(params) {
+  return useQuery({ queryKey: ['trials', params], queryFn: () => api.getTrials(params) })
+}
+export function useTrialsStats() {
+  return useQuery({ queryKey: ['trials-stats'], queryFn: api.getTrialsStats })
+}
+export function useTrialsSponsors(params) {
+  return useQuery({ queryKey: ['trials-sponsors', params], queryFn: () => api.getTrialsSponsors(params) })
+}
+export function useTrialsConditions(params) {
+  return useQuery({ queryKey: ['trials-conditions', params], queryFn: () => api.getTrialsConditions(params) })
+}
+export function useEndpointAnalysis(params) {
+  return useQuery({ queryKey: ['trials-endpoints', params], queryFn: () => api.analyzeEndpoints(params) })
+}
+
+// ── Histopatologia (Owkin / TCGA) ──────────────────────────────
+export function useHistopathStats() {
+  return useQuery({ queryKey: ['histopath-stats'], queryFn: api.getHistopathStats })
+}
+export function useHistopathSummary() {
+  return useQuery({ queryKey: ['histopath-summary'], queryFn: api.getHistopathSummary })
+}
+export function useHistopathCohorts() {
+  return useQuery({ queryKey: ['histopath-cohorts'], queryFn: api.getHistopathCohorts })
+}
+export function useHistopathFeatures() {
+  return useQuery({ queryKey: ['histopath-features'], queryFn: api.getHistopathFeatures })
+}
+export function useCohortTme(cohort, params = {}) {
+  return useQuery({
+    queryKey: ['cohort-tme', cohort, params],
+    queryFn: () => api.getCohortTme(cohort, params),
+    enabled: !!cohort,
+  })
+}
+export function useCohortSlides(cohort, params = {}) {
+  return useQuery({
+    queryKey: ['cohort-slides', cohort, params],
+    queryFn: () => api.getCohortSlides(cohort, params),
+    enabled: !!cohort && !!params.feature,
+  })
+}
+export function useCompoundHistopath(chemblId) {
+  return useQuery({
+    queryKey: ['compound-histopath', chemblId],
+    queryFn: () => api.getCompoundHistopath(chemblId),
+    enabled: !!chemblId,
+  })
+}

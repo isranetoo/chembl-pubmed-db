@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import {
   ArrowLeft, Crosshair, Dna, FlaskConical, Boxes, Network, ExternalLink,
-  Zap, Activity, ArrowUpRight,
+  Zap, Activity, ArrowUpRight, GitCompareArrows, X,
 } from 'lucide-react'
 import { useTarget, useTargetCompounds, useTargetBioactivities } from '../lib/hooks'
 import { formatNumber, getPhaseBadgeClass, phaseLabel } from '../lib/utils'
@@ -471,9 +471,13 @@ function AnnotationsTab({ target }) {
 function StructuresTab({ target }) {
   const { pdb_ids = [] } = target
   const [selected, setSelected] = useState(pdb_ids[0] || null)
+  const [compareMode, setCompareMode] = useState(false)
+  const [secondary, setSecondary] = useState(pdb_ids[1] || null)
 
   useEffect(() => {
     setSelected(pdb_ids[0] || null)
+    setSecondary(pdb_ids[1] || null)
+    setCompareMode(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target.chembl_id])
 
@@ -486,53 +490,112 @@ function StructuresTab({ target }) {
     )
   }
 
+  const canCompare = pdb_ids.length >= 2
+
   return (
     <div className="space-y-4">
-      {/* Viewer */}
-      {selected && <PdbViewer pdbId={selected} />}
-
-      {/* PDB picker */}
-      <Section title={`${pdb_ids.length} estruturas resolvidas`}>
-        <p className="text-xs text-neutral-500 mb-3">
-          Clique numa estrutura para visualizar. Cartoon + ligantes co-cristalizados são úteis pra
-          análise de bolso, docking e estudos de resistência (variantes mutadas).
+      {/* Compare mode toggle */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-neutral-500">
+          Click num átomo abre painel do resíduo. Heteroatoms aparecem como chips clicáveis.
         </p>
-        <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 max-h-72 overflow-y-auto pr-1">
-          {pdb_ids.map((id) => {
-            const isActive = id === selected
-            return (
-              <button
-                key={id}
-                onClick={() => setSelected(id)}
-                className={`group rounded-lg p-3 text-center transition-all border ${
-                  isActive
-                    ? 'bg-cyan-50 border-cyan-500 shadow-md'
-                    : 'bg-white border-gray-200 hover:border-cyan-300 hover:shadow-sm'
-                }`}
+        {canCompare && (
+          <button
+            onClick={() => setCompareMode((p) => !p)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              compareMode
+                ? 'bg-violet-100 text-violet-800 border-violet-300'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+            }`}
+          >
+            {compareMode ? <X size={12} /> : <GitCompareArrows size={12} />}
+            {compareMode ? 'Fechar comparação' : 'Comparar estruturas'}
+          </button>
+        )}
+      </div>
+
+      {/* Viewers */}
+      {compareMode && canCompare ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-cyan-600 text-white text-[10px] font-bold">A</span>
+              <select
+                className="glass-input flex-1 py-1.5 text-sm"
+                value={selected || ''}
+                onChange={(e) => setSelected(e.target.value)}
               >
-                <div className={`w-8 h-8 rounded-md flex items-center justify-center mx-auto mb-2 transition-transform group-hover:scale-110 ${
-                  isActive ? 'bg-gradient-to-br from-cyan-600 to-cyan-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-700'
-                }`}>
-                  <Boxes size={14} className="text-white" />
-                </div>
-                <p className={`font-mono text-xs font-semibold ${isActive ? 'text-cyan-800' : 'text-gray-800'}`}>
-                  {id}
-                </p>
-                {isActive && (
-                  <span className="text-[9px] text-cyan-700 font-semibold uppercase tracking-wider mt-0.5 block">
-                    visualizando
-                  </span>
-                )}
-              </button>
-            )
-          })}
+                {pdb_ids.map((id) => (
+                  <option key={id} value={id} disabled={id === secondary}>{id}</option>
+                ))}
+              </select>
+            </div>
+            {selected && <PdbViewer pdbId={selected} height={400} />}
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-violet-600 text-white text-[10px] font-bold">B</span>
+              <select
+                className="glass-input flex-1 py-1.5 text-sm"
+                value={secondary || ''}
+                onChange={(e) => setSecondary(e.target.value)}
+              >
+                {pdb_ids.map((id) => (
+                  <option key={id} value={id} disabled={id === selected}>{id}</option>
+                ))}
+              </select>
+            </div>
+            {secondary && <PdbViewer pdbId={secondary} height={400} />}
+          </div>
         </div>
-        <div className="mt-3 flex items-center gap-2 text-[11px] text-neutral-500">
-          <span className="inline-flex items-center gap-1">
-            <ExternalLink size={10} /> Viewer powered by 3Dmol.js · dados RCSB PDB
-          </span>
-        </div>
-      </Section>
+      ) : (
+        selected && <PdbViewer pdbId={selected} />
+      )}
+
+      {/* PDB picker — só fora do compare mode (no compare, os selects já cobrem) */}
+      {!compareMode && (
+        <Section title={`${pdb_ids.length} estruturas resolvidas`}>
+          <p className="text-xs text-neutral-500 mb-3">
+            Clique numa estrutura para visualizar. Use o botão <strong>Comparar</strong> acima pra ver duas lado-a-lado
+            (ex: wild-type × variante de resistência).
+          </p>
+          <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 max-h-72 overflow-y-auto pr-1">
+            {pdb_ids.map((id) => {
+              const isActive = id === selected
+              return (
+                <button
+                  key={id}
+                  onClick={() => setSelected(id)}
+                  className={`group rounded-lg p-3 text-center transition-all border ${
+                    isActive
+                      ? 'bg-cyan-50 border-cyan-500 shadow-md'
+                      : 'bg-white border-gray-200 hover:border-cyan-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-md flex items-center justify-center mx-auto mb-2 transition-transform group-hover:scale-110 ${
+                    isActive ? 'bg-gradient-to-br from-cyan-600 to-cyan-800' : 'bg-gradient-to-br from-cyan-500 to-cyan-700'
+                  }`}>
+                    <Boxes size={14} className="text-white" />
+                  </div>
+                  <p className={`font-mono text-xs font-semibold ${isActive ? 'text-cyan-800' : 'text-gray-800'}`}>
+                    {id}
+                  </p>
+                  {isActive && (
+                    <span className="text-[9px] text-cyan-700 font-semibold uppercase tracking-wider mt-0.5 block">
+                      visualizando
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          <div className="mt-3 flex items-center gap-2 text-[11px] text-neutral-500">
+            <span className="inline-flex items-center gap-1">
+              <ExternalLink size={10} /> Viewer powered by 3Dmol.js · dados RCSB PDB
+            </span>
+          </div>
+        </Section>
+      )}
     </div>
   )
 }

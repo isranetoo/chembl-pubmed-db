@@ -10,6 +10,9 @@ import SearchPage from './pages/SearchPage'
 import ComparePage from './pages/ComparePage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ToolsPage from './pages/ToolsPage'
+import HistopathologyPage from './pages/HistopathologyPage'
+import HistopathologyCohortPage from './pages/HistopathologyCohortPage'
+import TrialsPage from './pages/TrialsPage'
 
 export default function App() {
   return (
@@ -21,6 +24,9 @@ export default function App() {
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/tools" element={<ToolsPage />} />
+        <Route path="/histopathology" element={<HistopathologyPage />} />
+        <Route path="/histopathology/:cohort" element={<HistopathologyCohortPage />} />
+        <Route path="/trials" element={<TrialsPage />} />
         <Route path="/articles" element={<ArticlesPage />} />
         <Route path="/targets" element={<TargetsPage />} />
         <Route path="/targets/:chemblId" element={<TargetDetailPage />} />

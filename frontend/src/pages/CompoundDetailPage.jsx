@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useCompound, useCompoundAdmet, useCompoundIndications, useCompoundMechanisms, useCompoundBioactivities, useCompoundArticles } from '../lib/hooks'
+import { useCompound, useCompoundAdmet, useCompoundIndications, useCompoundMechanisms, useCompoundBioactivities, useCompoundArticles, useCompoundHistopath } from '../lib/hooks'
 import { formatNumber, getPhaseBadgeClass, phaseLabel } from '../lib/utils'
 import Loader from '../components/Loader'
 import Table from '../components/Table'
@@ -11,7 +11,7 @@ import Pagination from '../components/Pagination'
 import ClinicalTrialsTab from '../components/ClinicalTrialsTab'
 
 const PAGE_SIZE = 10
-import { ArrowLeft, Atom, Activity, Shield, Zap, BookOpen, FlaskConical, CheckCircle, XCircle, ExternalLink, GitCompareArrows, Stethoscope, AlertTriangle, Ban, Pill as PillIcon, Tag } from 'lucide-react'
+import { ArrowLeft, Atom, Activity, Shield, Zap, BookOpen, FlaskConical, CheckCircle, XCircle, ExternalLink, GitCompareArrows, Stethoscope, AlertTriangle, Ban, Pill as PillIcon, Tag, Microscope, ArrowUpRight } from 'lucide-react'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
@@ -24,6 +24,9 @@ const tabs = [
   { key: 'mechanisms', label: 'Mecanismos', icon: Zap },
   { key: 'bioactivities', label: 'Bioatividades', icon: FlaskConical },
   { key: 'trials', label: 'Clinical Status', icon: Stethoscope },
+  // Histopatologia: oculta até o pipeline Owkin preencher as stats.
+  // Painel da aba continua renderizado abaixo se `tab === 'histopath'` (acesso manual).
+  // { key: 'histopath', label: 'Histopatologia', icon: Microscope },
   { key: 'articles', label: 'Artigos', icon: BookOpen },
 ]
 
@@ -60,6 +63,7 @@ export default function CompoundDetailPage() {
   const mechanismsQ = useCompoundMechanisms(chemblId)
   const bioactivitiesQ = useCompoundBioactivities(chemblId, { size: PAGE_SIZE, page: bioactivitiesPage })
   const articlesQ = useCompoundArticles(chemblId, { size: PAGE_SIZE, page: articlesPage, only_abstract: true })
+  const histopathQ = useCompoundHistopath(chemblId)
 
   if (compoundQ.isLoading) return <Loader label="Carregando composto..." />
   if (compoundQ.error) return <div className="bg-white border border-rose-300 rounded-xl p-5 text-rose-700 text-sm">{compoundQ.error.message}</div>
@@ -543,6 +547,94 @@ export default function CompoundDetailPage() {
       {tab === 'trials' && (
         <Section title="Clinical Status" delay={0}>
           <ClinicalTrialsTab chemblId={c.chembl_id} drugName={c.name} />
+        </Section>
+      )}
+
+      {tab === 'histopath' && (
+        <Section title="Microambiente tumoral (Owkin / TCGA)" delay={0}>
+          {histopathQ.isLoading ? <Loader /> :
+           histopathQ.error ? (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-rose-700 text-sm">{histopathQ.error.message}</div>
+          ) : !histopathQ.data?.cohorts?.length ? (
+            <div className="text-center py-8">
+              <Microscope size={28} className="mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-neutral-500">
+                {histopathQ.data?.message || 'Sem coortes TCGA mapeadas para as indicações deste composto.'}
+              </p>
+              <p className="text-xs text-neutral-400 mt-2 max-w-md mx-auto">
+                Aplicável apenas a compostos com indicações oncológicas (ex: kinase inhibitors, agentes citotóxicos).
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-xs text-neutral-500">
+                Coortes TCGA correspondentes às indicações oncológicas deste composto. Cada card mostra o
+                perfil TME médio — útil pra prever onde o composto pode ter resposta diferenciada
+                (ex: tumor "quente" com muitos TILs vs. "frio").
+              </p>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {histopathQ.data.cohorts.map((c) => {
+                  const tme = c.tme_summary || {}
+                  const features = [
+                    { key: 'tils_diffusivity', label: 'TILs diffusivity', color: 'text-green-700' },
+                    { key: 'global_density_lymphocytes', label: 'Linfócitos', color: 'text-sky-700' },
+                    { key: 'global_density_fibroblasts', label: 'Fibroblastos', color: 'text-amber-700' },
+                    { key: 'global_density_cancer_cell', label: 'Células tumorais', color: 'text-rose-700' },
+                  ]
+                  return (
+                    <Link
+                      key={c.tcga_cohort}
+                      to={`/histopathology/${c.tcga_cohort}`}
+                      className="group rounded-xl bg-white border border-gray-200 p-4 hover:shadow-md hover:border-rose-300 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <code className="text-[11px] font-mono font-semibold text-rose-800 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                              {c.tcga_cohort}
+                            </code>
+                            <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-rose-700" />
+                          </div>
+                          <p className="text-sm font-medium text-gray-800 group-hover:text-rose-700 transition-colors">
+                            {c.cancer_name}
+                          </p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">
+                            via <span className="font-medium">{c.indication}</span>
+                            {c.match_keyword && <span className="text-gray-400"> · "{c.match_keyword}"</span>}
+                          </p>
+                        </div>
+                      </div>
+                      {c.tme_features_cached > 0 ? (
+                        <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-100">
+                          {features.map((f) => {
+                            const v = tme[f.key]?.mean
+                            return (
+                              <div key={f.key}>
+                                <p className="text-[9px] uppercase tracking-wider text-gray-400 font-semibold">{f.label}</p>
+                                <p className={`text-sm font-mono font-semibold ${f.color}`}>
+                                  {v != null ? Number(v).toFixed(3) : '—'}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-amber-700 mt-2">Sem cache TME — abra a coorte para detalhes.</p>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-[11px] text-gray-600">
+                <strong className="text-gray-700">Como ler:</strong> os valores são médias normalizadas
+                por slide. <em>TILs diffusivity</em> alta indica linfócitos penetrando o tumor (resposta
+                imunoterápica mais provável). <em>Fibroblastos</em> em excesso sugerem estroma denso e
+                possível resistência. <em>Células tumorais</em> alta = lesão mais sólida e proliferativa.
+              </div>
+            </div>
+          )}
         </Section>
       )}
 

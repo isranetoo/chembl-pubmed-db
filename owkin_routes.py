@@ -27,6 +27,37 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
     """
     from typing import Optional
     from fastapi import Query, HTTPException
+    from psycopg2.errors import UndefinedTable
+
+    _MIGRATION_HINT = (
+        "Tabelas Owkin ausentes — rode `alembic upgrade head` no banco "
+        "(ou aplique manualmente database/init/08_owkin_histopathology.sql)."
+    )
+
+    def _safe_query(sql, params=None, default=None):
+        """db_query() resiliente: se as tabelas Owkin ainda não foram
+        criadas (banco existente sem a migration 0008 aplicada), retorna
+        `default` em vez de propagar UndefinedTable → 500."""
+        try:
+            return db_query(sql, params)
+        except UndefinedTable:
+            return default if default is not None else []
+        except Exception as exc:
+            # Outras exceções de DB podem ser quirks de connection state;
+            # se a mensagem indica tabela ausente, trate igual.
+            if "does not exist" in str(exc).lower():
+                return default if default is not None else []
+            raise
+
+    def _safe_one(sql, params=None):
+        try:
+            return db_one(sql, params)
+        except UndefinedTable:
+            return None
+        except Exception as exc:
+            if "does not exist" in str(exc).lower():
+                return None
+            raise
 
     # Features-chave monitoradas pelo DrugXpert (subset das ~56 do Owkin)
     KEY_FEATURES = [
@@ -57,7 +88,7 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
         """
         compound_id = _resolve_compound_id(chembl_id)
 
-        cohorts = db_query("""
+        cohorts = _safe_query("""
             SELECT DISTINCT
                 itm.tcga_cohort,
                 tcd.cancer_name,
@@ -68,24 +99,26 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
             JOIN tcga_cohort_dictionary tcd ON tcd.tcga_cohort = itm.tcga_cohort
             WHERE i.compound_id = %s
             ORDER BY itm.tcga_cohort
-        """, (compound_id,))
+        """, (compound_id,), default=[])
 
         if not cohorts:
             return {
                 "chembl_id": chembl_id.upper(),
-                "message": "Nenhuma coorte TCGA mapeada para este composto. "
-                           "Execute POST /histopathology/map-indications primeiro.",
+                "message": (
+                    "Nenhuma coorte TCGA mapeada para este composto. "
+                    "Execute POST /histopathology/map-indications primeiro."
+                ),
                 "cohorts": [],
             }
 
         # Enriquecer cada coorte com resumo TME
         enriched = []
         for c in cohorts:
-            stats = db_query("""
+            stats = _safe_query("""
                 SELECT feature, mean, std
                 FROM owkin_cohort_stats
                 WHERE tcga_cohort = %s
-            """, (c["tcga_cohort"],))
+            """, (c["tcga_cohort"],), default=[])
 
             tme_summary = {}
             for s in stats:
@@ -114,11 +147,11 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
         summary="Dicionário de coortes TCGA",
     )
     def list_tcga_cohorts():
-        rows = db_query("""
+        rows = _safe_query("""
             SELECT tcga_cohort, cancer_name, keywords
             FROM tcga_cohort_dictionary
             ORDER BY tcga_cohort
-        """)
+        """, default=[])
         return {"total": len(rows), "cohorts": rows}
 
     # ── 3. Estatísticas TME de uma coorte ────────────────────────────
@@ -149,7 +182,7 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
             params.append(feature)
 
         sql += " ORDER BY feature"
-        stats = db_query(sql, params)
+        stats = _safe_query(sql, params, default=[])
 
         if feature and not stats:
             raise HTTPException(
@@ -183,13 +216,13 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
     ):
         cohort = tcga_cohort.upper()
 
-        slides = db_query("""
+        slides = _safe_query("""
             SELECT slide_id, value, rank_in_cohort AS rank, fetched_at::text
             FROM owkin_slides
             WHERE tcga_cohort = %s AND feature = %s
             ORDER BY rank_in_cohort ASC
             LIMIT %s
-        """, (cohort, feature, limit))
+        """, (cohort, feature, limit), default=[])
 
         for s in slides:
             if s.get("value") is not None:
@@ -210,7 +243,7 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
         summary="Resumo TME de todas as coortes",
     )
     def tme_summary():
-        rows = db_query("SELECT * FROM v_tme_summary ORDER BY tcga_cohort")
+        rows = _safe_query("SELECT * FROM v_tme_summary ORDER BY tcga_cohort", default=[])
 
         for row in rows:
             for k, v in row.items():
@@ -231,10 +264,13 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
         Percorre todas as indicações e mapeia via keywords para coortes TCGA.
         Deve ser chamado após popular novas indicações.
         """
-        indications = db_query("SELECT id, mesh_heading FROM indications")
-        cohort_kws = db_query(
-            "SELECT tcga_cohort, keywords FROM tcga_cohort_dictionary"
+        indications = _safe_query("SELECT id, mesh_heading FROM indications", default=[])
+        cohort_kws = _safe_query(
+            "SELECT tcga_cohort, keywords FROM tcga_cohort_dictionary",
+            default=[],
         )
+        if not cohort_kws:
+            raise HTTPException(503, detail=_MIGRATION_HINT)
 
         mapped = 0
         for ind in indications:
@@ -283,7 +319,7 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
         summary="Estatísticas da integração Owkin",
     )
     def histopathology_stats():
-        row = db_one("""
+        row = _safe_one("""
             SELECT
                 (SELECT COUNT(DISTINCT tcga_cohort)
                  FROM indication_tcga_map)          AS mapped_cohorts,
@@ -296,4 +332,13 @@ def create_owkin_routes(app, db_query, db_one, _resolve_compound_id):
                 (SELECT COUNT(*)
                  FROM owkin_slides)                  AS cached_slides
         """)
+        if row is None:
+            return {
+                "mapped_cohorts": 0,
+                "total_mappings": 0,
+                "cohorts_with_tme_data": 0,
+                "cached_features": 0,
+                "cached_slides": 0,
+                "warning": _MIGRATION_HINT,
+            }
         return row

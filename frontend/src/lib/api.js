@@ -36,4 +36,20 @@ export const api = {
   getTargetCompounds: (chemblId, params) => request(`/targets/${chemblId}/compounds`, params),
   getTargetBioactivities: (chemblId, params) => request(`/targets/${chemblId}/bioactivities`, params),
   search: (params) => request('/search', params),
+
+  // Clinical Trials — visão global
+  getTrials:           (params) => request('/trials', params),
+  getTrialsStats:      () => request('/trials/stats'),
+  getTrialsSponsors:   (params) => request('/trials/sponsors', params),
+  getTrialsConditions: (params) => request('/trials/conditions', params),
+  analyzeEndpoints:    (params) => request('/trials/endpoints/analyze', params),
+
+  // Histopatologia (Owkin / TCGA)
+  getHistopathStats:    () => request('/histopathology/stats'),
+  getHistopathSummary:  () => request('/histopathology/summary'),
+  getHistopathCohorts:  () => request('/histopathology/cohorts'),
+  getHistopathFeatures: () => request('/histopathology/features'),
+  getCohortTme:    (cohort, params) => request(`/histopathology/cohorts/${cohort}/tme`, params),
+  getCohortSlides: (cohort, params) => request(`/histopathology/cohorts/${cohort}/slides`, params),
+  getCompoundHistopath: (chemblId) => request(`/compounds/${chemblId}/histopathology`),
 }

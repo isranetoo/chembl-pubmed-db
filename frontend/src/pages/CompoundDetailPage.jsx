@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useCompound, useCompoundAdmet, useCompoundIndications, useCompoundMechanisms, useCompoundBioactivities, useCompoundArticles } from '../lib/hooks'
-import { formatNumber, getPhaseBadgeClass, phaseLabel, getPhaseColor } from '../lib/utils'
+import { formatNumber, getPhaseBadgeClass, phaseLabel } from '../lib/utils'
 import Loader from '../components/Loader'
 import Table from '../components/Table'
 import Pill from '../components/Pill'
@@ -27,12 +27,12 @@ const tabs = [
   { key: 'articles', label: 'Artigos', icon: BookOpen },
 ]
 
-function MetricCard({ label, value, sub, color = 'white' }) {
+function MetricCard({ label, value, sub, color = 'gray' }) {
   return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 transition-all hover:bg-white/[0.05]">
-      <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">{label}</p>
-      <p className={`text-lg font-bold ${color === 'emerald' ? 'text-emerald-400' : 'text-white/85'}`} style={{ fontFamily: 'Outfit' }}>{value}</p>
-      {sub && <p className="text-[11px] text-white/25 mt-1">{sub}</p>}
+    <div className="rounded-xl bg-white border border-gray-200 p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+      <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1.5">{label}</p>
+      <p className={`text-lg font-bold ${color === 'emerald' ? 'text-green-700' : 'text-gray-800'}`}>{value}</p>
+      {sub && <p className="text-[11px] text-neutral-500 mt-1">{sub}</p>}
     </div>
   )
 }
@@ -62,7 +62,7 @@ export default function CompoundDetailPage() {
   const articlesQ = useCompoundArticles(chemblId, { size: PAGE_SIZE, page: articlesPage, only_abstract: true })
 
   if (compoundQ.isLoading) return <Loader label="Carregando composto..." />
-  if (compoundQ.error) return <div className="glass-card p-5 border-red-500/20 text-red-300 text-sm">{compoundQ.error.message}</div>
+  if (compoundQ.error) return <div className="bg-white border border-rose-300 rounded-xl p-5 text-rose-700 text-sm">{compoundQ.error.message}</div>
 
   const c = compoundQ.data
   const admet = admetQ.data
@@ -76,13 +76,13 @@ export default function CompoundDetailPage() {
     <div className="space-y-6 pb-8">
       {/* Back + Header */}
       <div className="animate-fade-in-up">
-        <Link to="/compounds" className="inline-flex items-center gap-1.5 text-sm text-white/40 hover:text-white/70 transition-colors mb-4">
+        <Link to="/compounds" className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-green-700 transition-colors mb-4">
           <ArrowLeft size={14} /> Voltar
         </Link>
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400/60 mb-1 font-mono">{c.chembl_id}</p>
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-white" style={{ fontFamily: 'Outfit' }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-green-700 mb-1 font-mono">{c.chembl_id}</p>
+            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-gray-800">
               {c.name || 'Composto'}
             </h1>
 
@@ -95,44 +95,44 @@ export default function CompoundDetailPage() {
                 </Pill>
               )}
               {c.molecule_type && (
-                <Pill className="bg-white/[0.05] text-white/60 border-white/10">{c.molecule_type}</Pill>
+                <Pill className="bg-gray-100 text-gray-700 border-gray-300">{c.molecule_type}</Pill>
               )}
               {c.oral && (
-                <Pill className="bg-blue-500/15 text-blue-300 border-blue-500/20">
+                <Pill className="bg-blue-100 text-blue-800 border-blue-300">
                   <PillIcon size={11} className="inline mr-1" />Oral
                 </Pill>
               )}
               {c.parenteral && (
-                <Pill className="bg-violet-500/15 text-violet-300 border-violet-500/20">Parenteral</Pill>
+                <Pill className="bg-violet-100 text-violet-800 border-violet-300">Parenteral</Pill>
               )}
               {c.topical && (
-                <Pill className="bg-teal-500/15 text-teal-300 border-teal-500/20">Topical</Pill>
+                <Pill className="bg-teal-100 text-teal-800 border-teal-300">Topical</Pill>
               )}
               {c.first_in_class && (
-                <Pill className="bg-emerald-500/15 text-emerald-300 border-emerald-500/20">First-in-class</Pill>
+                <Pill className="bg-green-100 text-green-800 border-green-300">First-in-class</Pill>
               )}
               {c.prodrug && (
-                <Pill className="bg-slate-500/15 text-slate-300 border-slate-500/20">Prodrug</Pill>
+                <Pill className="bg-gray-100 text-gray-700 border-gray-300">Prodrug</Pill>
               )}
               {c.orphan && (
-                <Pill className="bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20">Orphan</Pill>
+                <Pill className="bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300">Orphan</Pill>
               )}
               {c.natural_product && (
-                <Pill className="bg-lime-500/15 text-lime-300 border-lime-500/20">Natural product</Pill>
+                <Pill className="bg-lime-100 text-lime-800 border-lime-300">Natural product</Pill>
               )}
               {c.black_box_warning && (
-                <Pill className="bg-amber-500/15 text-amber-300 border-amber-500/30">
+                <Pill className="bg-amber-100 text-amber-800 border-amber-300">
                   <AlertTriangle size={11} className="inline mr-1" />Black box warning
                 </Pill>
               )}
               {c.withdrawn_flag && (
-                <Pill className="bg-red-500/15 text-red-300 border-red-500/30" title={c.withdrawn_reason || ''}>
+                <Pill className="bg-rose-100 text-rose-800 border-rose-300" title={c.withdrawn_reason || ''}>
                   <Ban size={11} className="inline mr-1" />
                   Withdrawn{c.withdrawn_year ? ` · ${c.withdrawn_year}` : ''}
                 </Pill>
               )}
               {c.atc?.[0]?.level5 && (
-                <Pill className="bg-white/[0.05] text-white/55 border-white/10 font-mono" title={c.atc[0].level1_description || ''}>
+                <Pill className="bg-gray-100 text-gray-700 border-gray-300 font-mono" title={c.atc[0].level1_description || ''}>
                   <Tag size={11} className="inline mr-1" />ATC {c.atc[0].level5}
                 </Pill>
               )}
@@ -140,9 +140,9 @@ export default function CompoundDetailPage() {
 
             {/* Drug class (USAN stem) */}
             {c.usan_stem_definition && (
-              <p className="text-xs text-white/40 mt-2">
-                Classe farmacológica: <span className="text-white/70">{c.usan_stem_definition}</span>
-                {c.usan_stem && <span className="text-white/30 font-mono"> ({c.usan_stem})</span>}
+              <p className="text-xs text-neutral-600 mt-2">
+                Classe farmacológica: <span className="text-gray-800 font-medium">{c.usan_stem_definition}</span>
+                {c.usan_stem && <span className="text-gray-500 font-mono"> ({c.usan_stem})</span>}
               </p>
             )}
 
@@ -155,17 +155,17 @@ export default function CompoundDetailPage() {
                 .slice(0, 6)
               if (trade.length === 0) return null
               return (
-                <p className="text-xs text-white/40 mt-1">
-                  Também conhecido como: <span className="text-white/65">{trade.join(', ')}</span>
+                <p className="text-xs text-neutral-600 mt-1">
+                  Também conhecido como: <span className="text-gray-800">{trade.join(', ')}</span>
                 </p>
               )
             })()}
           </div>
 
           {c.smiles && (
-            <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-2 max-w-md flex-shrink-0">
-              <p className="text-[10px] text-white/30 mb-0.5">SMILES</p>
-              <code className="text-[11px] text-emerald-300/50 break-all font-mono">{c.smiles}</code>
+            <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-2 max-w-md flex-shrink-0">
+              <p className="text-[10px] text-gray-500 font-semibold mb-0.5">SMILES</p>
+              <code className="text-[11px] text-green-800 break-all font-mono">{c.smiles}</code>
             </div>
           )}
         </div>
@@ -180,13 +180,13 @@ export default function CompoundDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+      <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-gray-50 border border-gray-200 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
               tab === t.key
-                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 shadow-sm'
-                : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04] border border-transparent'
+                ? 'bg-gradient-to-br from-green-600 to-green-900 text-white shadow-md'
+                : 'text-gray-600 hover:text-green-700 hover:bg-white border border-transparent'
             }`}>
             <t.icon size={15} />
             <span className="hidden sm:inline">{t.label}</span>
@@ -202,23 +202,23 @@ export default function CompoundDetailPage() {
             {/* Molecular structure */}
             <Section title="Estrutura Molecular">
               <div className="flex flex-col items-center">
-                <div className="w-full max-w-[280px] aspect-square rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-center overflow-hidden mb-3">
+                <div className="w-full max-w-[280px] aspect-square rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden mb-3">
                   <img
                     src={`https://www.ebi.ac.uk/chembl/api/data/image/${c.chembl_id}.svg`}
                     alt={`Estrutura 2D de ${c.name}`}
-                    className="w-full h-full object-contain p-4 invert opacity-80"
+                    className="w-full h-full object-contain p-4"
                     onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
                   />
-                  <div className="hidden flex-col items-center gap-2 text-white/20">
+                  <div className="hidden flex-col items-center gap-2 text-gray-400">
                     <Atom size={36} />
                     <span className="text-xs">Imagem indisponível</span>
                   </div>
                 </div>
                 {c.smiles && (
-                  <code className="text-[10px] text-emerald-300/40 font-mono text-center break-all px-4 max-w-sm">{c.smiles}</code>
+                  <code className="text-[10px] text-green-800 font-mono text-center break-all px-4 max-w-sm">{c.smiles}</code>
                 )}
                 <Link to={`/compare?add=${c.chembl_id}`}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-white/40 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:text-white/70 transition-all">
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 bg-white hover:border-[#5c8d2f] hover:text-green-800 hover:bg-green-50 transition-all">
                   <GitCompareArrows size={13} /> Comparar com outro
                 </Link>
               </div>
@@ -240,17 +240,17 @@ export default function CompoundDetailPage() {
                   <>
                     <ResponsiveContainer width="100%" height={280}>
                       <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="72%">
-                        <PolarGrid stroke="rgba(255,255,255,0.06)" />
-                        <PolarAngleAxis dataKey="prop" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: 'Outfit' }} />
+                        <PolarGrid stroke="rgba(31,41,55,0.08)" />
+                        <PolarAngleAxis dataKey="prop" tick={{ fill: '#4b5563', fontSize: 11, fontFamily: 'Kanit' }} />
                         <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} />
-                        <Radar dataKey="value" stroke="#34d399" fill="#34d399" fillOpacity={0.15} strokeWidth={2} dot={{ r: 3, fill: '#34d399' }} />
+                        <Radar dataKey="value" stroke="#2f6b14" fill="#5c8d2f" fillOpacity={0.25} strokeWidth={2} dot={{ r: 3, fill: '#2f6b14' }} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12 }}
+                          contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, fontSize: 12, color: '#1f2937' }}
                           formatter={(v) => [(v * 100).toFixed(0) + '%']}
                         />
                       </RadarChart>
                     </ResponsiveContainer>
-                    <p className="text-[10px] text-white/20 text-center mt-1">Mais próximo da borda = melhor druglikeness</p>
+                    <p className="text-[10px] text-gray-500 text-center mt-1">Mais próximo da borda = melhor druglikeness</p>
                   </>
                 )
               })() : <EmptyState description="Sem dados ADMET." />}
@@ -269,17 +269,17 @@ export default function CompoundDetailPage() {
                   <MetricCard label="Rotatable Bonds" value={admet.rtb ?? '—'} />
                   <MetricCard label="Ro5 violações" value={admet.num_ro5_violations ?? '—'} />
                   <div className="col-span-2 flex gap-3">
-                    <div className={`flex-1 rounded-xl p-3 flex items-center gap-2 ${admet.lipinski_pass ? 'bg-emerald-500/10 border border-emerald-500/15' : 'bg-red-500/10 border border-red-500/15'}`}>
-                      {admet.lipinski_pass ? <CheckCircle size={16} className="text-emerald-400" /> : <XCircle size={16} className="text-red-400" />}
-                      <span className="text-xs font-medium text-white/60">Lipinski</span>
+                    <div className={`flex-1 rounded-xl p-3 flex items-center gap-2 ${admet.lipinski_pass ? 'bg-green-50 border border-green-200' : 'bg-rose-50 border border-rose-200'}`}>
+                      {admet.lipinski_pass ? <CheckCircle size={16} className="text-green-700" /> : <XCircle size={16} className="text-rose-600" />}
+                      <span className="text-xs font-semibold text-gray-700">Lipinski</span>
                     </div>
-                    <div className={`flex-1 rounded-xl p-3 flex items-center gap-2 ${admet.veber_pass ? 'bg-emerald-500/10 border border-emerald-500/15' : 'bg-amber-500/10 border border-amber-500/15'}`}>
-                      {admet.veber_pass ? <CheckCircle size={16} className="text-emerald-400" /> : <XCircle size={16} className="text-amber-400" />}
-                      <span className="text-xs font-medium text-white/60">Veber</span>
+                    <div className={`flex-1 rounded-xl p-3 flex items-center gap-2 ${admet.veber_pass ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+                      {admet.veber_pass ? <CheckCircle size={16} className="text-green-700" /> : <XCircle size={16} className="text-amber-600" />}
+                      <span className="text-xs font-semibold text-gray-700">Veber</span>
                     </div>
-                    <div className={`flex-1 rounded-xl p-3 flex items-center gap-2 ${admet.pains_free ? 'bg-emerald-500/10 border border-emerald-500/15' : 'bg-amber-500/10 border border-amber-500/15'}`}>
-                      {admet.pains_free ? <CheckCircle size={16} className="text-emerald-400" /> : <XCircle size={16} className="text-amber-400" />}
-                      <span className="text-xs font-medium text-white/60">PAINS</span>
+                    <div className={`flex-1 rounded-xl p-3 flex items-center gap-2 ${admet.pains_free ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+                      {admet.pains_free ? <CheckCircle size={16} className="text-green-700" /> : <XCircle size={16} className="text-amber-600" />}
+                      <span className="text-xs font-semibold text-gray-700">PAINS</span>
                     </div>
                   </div>
                 </div>
@@ -301,25 +301,25 @@ export default function CompoundDetailPage() {
                     return order.indexOf(a.name) - order.indexOf(b.name)
                   })
                 const phaseBarColors = {
-                  'Approved': '#10b981', 'Phase 3': '#3b82f6', 'Phase 2': '#f59e0b',
-                  'Phase 1': '#f97316', 'Early Phase 1': '#6b7280', 'Preclinical': '#475569', '—': '#334155'
+                  'Approved': '#2f6b14', 'Phase 3': '#0369a1', 'Phase 2': '#d97706',
+                  'Phase 1': '#ea580c', 'Early Phase 1': '#6b7280', 'Preclinical': '#4b5563', '—': '#9ca3af'
                 }
                 return (
                   <>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={phaseData} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                        <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }} stroke="rgba(255,255,255,0.06)" allowDecimals={false} />
-                        <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'Outfit' }} stroke="rgba(255,255,255,0.06)" width={90} />
-                        <Tooltip contentStyle={{ backgroundColor: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(31,41,55,0.06)" horizontal={false} />
+                        <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 10 }} stroke="rgba(31,41,55,0.1)" allowDecimals={false} />
+                        <YAxis type="category" dataKey="name" tick={{ fill: '#4b5563', fontSize: 11, fontFamily: 'Kanit' }} stroke="rgba(31,41,55,0.1)" width={90} />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, fontSize: 12, color: '#1f2937' }} />
                         <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={24}>
                           {phaseData.map((entry) => (
-                            <Cell key={entry.name} fill={phaseBarColors[entry.name] || '#475569'} fillOpacity={0.7} />
+                            <Cell key={entry.name} fill={phaseBarColors[entry.name] || '#9ca3af'} fillOpacity={0.85} />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <p className="text-xs text-white/25 text-center">{formatNumber(indicationsAll.total)} indicações totais</p>
+                    <p className="text-xs text-gray-500 text-center">{formatNumber(indicationsAll.total)} indicações totais</p>
                   </>
                 )
               })() : <EmptyState description="Sem indicações registradas." />}
@@ -381,14 +381,14 @@ export default function CompoundDetailPage() {
           {mechanismsQ.isLoading ? <Loader /> : !mechanisms?.items?.length ? <EmptyState description="Nenhum mecanismo." /> : (
             <div className="space-y-3">
               {mechanisms.items.map((m) => (
-                <div key={m.mec_id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-5 transition-all hover:bg-white/[0.05]">
+                <div key={m.mec_id} className="rounded-xl bg-white border border-gray-200 p-5 shadow-sm transition-all hover:shadow-md hover:border-[#5c8d2f]">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-white/85">{m.mechanism_of_action || m.action_type || 'Mecanismo'}</h3>
+                      <h3 className="text-sm font-semibold text-gray-800">{m.mechanism_of_action || m.action_type || 'Mecanismo'}</h3>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <p className="text-xs text-white/35">{m.target_name || '—'}</p>
+                        <p className="text-xs text-neutral-500">{m.target_name || '—'}</p>
                         {m.gene_symbol && (
-                          <span className="text-[10px] font-mono text-emerald-300/70 bg-emerald-500/10 border border-emerald-500/15 rounded px-1.5 py-0.5">
+                          <span className="text-[10px] font-mono text-green-800 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">
                             {m.gene_symbol}
                           </span>
                         )}
@@ -396,23 +396,23 @@ export default function CompoundDetailPage() {
                           <a
                             href={`https://www.uniprot.org/uniprotkb/${m.uniprot_accession}/entry`}
                             target="_blank" rel="noreferrer"
-                            className="text-[10px] font-mono text-white/35 hover:text-white/70 transition-colors"
+                            className="text-[10px] font-mono text-gray-500 hover:text-green-700 transition-colors"
                             title="UniProt"
                           >
                             {m.uniprot_accession} ↗
                           </a>
                         )}
                         {m.variant_sequence?.mutation && (
-                          <span className="text-[10px] text-amber-300/80 font-mono bg-amber-500/10 border border-amber-500/20 rounded px-1.5 py-0.5"
+                          <span className="text-[10px] text-amber-800 font-mono bg-amber-50 border border-amber-300 rounded px-1.5 py-0.5"
                                 title={m.variant_sequence?.organism || ''}>
                             mut: {m.variant_sequence.mutation}
                           </span>
                         )}
                       </div>
                     </div>
-                    {m.action_type && <Pill className="bg-violet-500/15 text-violet-300 border-violet-500/20">{m.action_type}</Pill>}
+                    {m.action_type && <Pill className="bg-violet-100 text-violet-800 border-violet-300">{m.action_type}</Pill>}
                   </div>
-                  {m.mechanism_comment && <p className="mt-3 text-xs text-white/30 leading-relaxed">{m.mechanism_comment}</p>}
+                  {m.mechanism_comment && <p className="mt-3 text-xs text-neutral-600 leading-relaxed">{m.mechanism_comment}</p>}
                 </div>
               ))}
             </div>
@@ -424,12 +424,12 @@ export default function CompoundDetailPage() {
         <Section title="Bioatividades" delay={0}>
           {bioactivitiesQ.isLoading ? <Loader /> : (
             <div className="space-y-3">
-              <p className="text-[11px] text-white/30">
-                <span className="font-semibold text-white/50">pChEMBL</span> = −log₁₀(IC50/Ki em molar) — quanto maior, mais potente.
-                <span className="ml-2 text-emerald-400/70">≥ 8 alta</span>
-                <span className="ml-2 text-sky-400/70">7–8 boa</span>
-                <span className="ml-2 text-amber-400/70">6–7 moderada</span>
-                <span className="ml-2 text-white/30">&lt; 6 fraca</span>
+              <p className="text-[11px] text-neutral-500">
+                <span className="font-semibold text-gray-700">pChEMBL</span> = −log₁₀(IC50/Ki em molar) — quanto maior, mais potente.
+                <span className="ml-2 text-green-700">≥ 8 alta</span>
+                <span className="ml-2 text-sky-700">7–8 boa</span>
+                <span className="ml-2 text-amber-700">6–7 moderada</span>
+                <span className="ml-2 text-gray-500">&lt; 6 fraca</span>
               </p>
               <Table columns={[
                 {
@@ -438,9 +438,9 @@ export default function CompoundDetailPage() {
                   render: (r) => (
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-white/80 truncate">{r.target_name || '—'}</span>
+                        <span className="text-gray-800 font-medium truncate">{r.target_name || '—'}</span>
                         {r.gene_symbol && (
-                          <span className="text-[10px] font-mono text-emerald-300/70 bg-emerald-500/10 border border-emerald-500/15 rounded px-1 flex-shrink-0">
+                          <span className="text-[10px] font-mono text-green-800 bg-green-50 border border-green-200 rounded px-1 flex-shrink-0">
                             {r.gene_symbol}
                           </span>
                         )}
@@ -450,14 +450,14 @@ export default function CompoundDetailPage() {
                           <a
                             href={`https://www.uniprot.org/uniprotkb/${r.uniprot_accession}/entry`}
                             target="_blank" rel="noreferrer"
-                            className="text-[10px] font-mono text-white/35 hover:text-white/70 transition-colors"
+                            className="text-[10px] font-mono text-gray-500 hover:text-green-700 transition-colors"
                             title="UniProt"
                           >
                             {r.uniprot_accession} ↗
                           </a>
                         )}
                         {r.assay_variant_mutation && (
-                          <span className="text-[10px] text-amber-300/80 font-mono">mut: {r.assay_variant_mutation}</span>
+                          <span className="text-[10px] text-amber-700 font-mono">mut: {r.assay_variant_mutation}</span>
                         )}
                       </div>
                     </div>
@@ -466,16 +466,16 @@ export default function CompoundDetailPage() {
                 {
                   key: 'organism',
                   header: 'Organismo',
-                  render: (r) => <span className="text-white/50 text-xs italic">{r.organism || '—'}</span>,
+                  render: (r) => <span className="text-gray-600 text-xs italic">{r.organism || '—'}</span>,
                 },
                 {
                   key: 'activity_type',
                   header: 'Tipo',
                   render: (r) => (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-white/80">{r.activity_type || '—'}</span>
+                      <span className="text-gray-800">{r.activity_type || '—'}</span>
                       {r.assay_type && (
-                        <Pill className="bg-white/[0.04] text-white/45 border-white/10 !px-1.5 !py-0 !text-[10px]" title={
+                        <Pill className="bg-gray-100 text-gray-600 border-gray-200 !px-1.5 !py-0 !text-[10px]" title={
                           { B: 'Binding', F: 'Functional', A: 'ADME', T: 'Toxicity', P: 'Physchem' }[r.assay_type] || r.assay_type
                         }>{r.assay_type}</Pill>
                       )}
@@ -489,7 +489,7 @@ export default function CompoundDetailPage() {
                     const v = r.standard_value ?? r.value
                     const u = r.standard_units || r.units
                     return (
-                      <span className="font-mono text-xs text-white/80">
+                      <span className="font-mono text-xs text-gray-800">
                         {r.relation && r.relation !== '=' ? r.relation + ' ' : ''}
                         {formatNumber(v, { maximumFractionDigits: 3 })} {u || ''}
                       </span>
@@ -500,12 +500,12 @@ export default function CompoundDetailPage() {
                   key: 'pchembl_value',
                   header: 'pChEMBL',
                   render: (r) => {
-                    if (r.pchembl_value == null) return <span className="text-white/20">—</span>
+                    if (r.pchembl_value == null) return <span className="text-gray-400">—</span>
                     const p = Number(r.pchembl_value)
-                    const cls = p >= 8 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                              : p >= 7 ? 'bg-sky-500/15 text-sky-300 border-sky-500/30'
-                              : p >= 6 ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                                       : 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+                    const cls = p >= 8 ? 'bg-green-100 text-green-800 border-green-300'
+                              : p >= 7 ? 'bg-sky-100 text-sky-800 border-sky-300'
+                              : p >= 6 ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                       : 'bg-gray-100 text-gray-700 border-gray-300'
                     return <Pill className={`${cls} font-mono`}>{p.toFixed(2)}</Pill>
                   },
                 },
@@ -513,20 +513,20 @@ export default function CompoundDetailPage() {
                   key: 'document',
                   header: 'Fonte',
                   render: (r) => r.document_year || r.document_journal ? (
-                    <div className="text-[11px] text-white/40 truncate max-w-[160px]" title={r.document_journal || ''}>
+                    <div className="text-[11px] text-neutral-500 truncate max-w-[160px]" title={r.document_journal || ''}>
                       {r.document_journal || '—'}
-                      {r.document_year && <span className="text-white/30 ml-1">· {r.document_year}</span>}
+                      {r.document_year && <span className="text-gray-400 ml-1">· {r.document_year}</span>}
                     </div>
-                  ) : <span className="text-white/20">—</span>,
+                  ) : <span className="text-gray-400">—</span>,
                 },
                 {
                   key: 'le',
                   header: 'LE',
                   render: (r) => r.le != null ? (
-                    <span className="font-mono text-[11px] text-white/55" title={`BEI=${r.bei ?? '—'} | LLE=${r.lle ?? '—'} | SEI=${r.sei ?? '—'}`}>
+                    <span className="font-mono text-[11px] text-gray-700" title={`BEI=${r.bei ?? '—'} | LLE=${r.lle ?? '—'} | SEI=${r.sei ?? '—'}`}>
                       {Number(r.le).toFixed(2)}
                     </span>
-                  ) : <span className="text-white/20">—</span>,
+                  ) : <span className="text-gray-400">—</span>,
                 },
               ]} rows={bioactivities?.items || []} emptyMessage="Nenhuma bioatividade." />
               <Pagination
@@ -551,18 +551,18 @@ export default function CompoundDetailPage() {
           {articlesQ.isLoading ? <Loader /> : !articles?.items?.length ? <EmptyState description="Nenhum artigo." /> : (
             <div className="space-y-3">
               {articles.items.map((a) => (
-                <div key={a.pmid} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-5 transition-all hover:bg-white/[0.05]">
+                <div key={a.pmid} className="rounded-xl bg-white border border-gray-200 p-5 shadow-sm transition-all hover:shadow-md hover:border-[#5c8d2f]">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-white/85 leading-snug">{a.title}</h3>
-                      <p className="text-xs text-white/30 mt-1.5">{a.journal || '—'} · {a.pub_year || '—'} · PMID {a.pmid}</p>
+                      <h3 className="text-sm font-medium text-gray-800 leading-snug">{a.title}</h3>
+                      <p className="text-xs text-neutral-500 mt-1.5">{a.journal || '—'} · {a.pub_year || '—'} · PMID {a.pmid}</p>
                     </div>
                     <a href={`https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/`} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-all flex-shrink-0">
+                      className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 hover:text-green-700 hover:border-[#5c8d2f] hover:bg-green-50 transition-all flex-shrink-0">
                       PubMed <ExternalLink size={11} />
                     </a>
                   </div>
-                  {a.abstract && <p className="mt-3 text-xs text-white/30 leading-relaxed line-clamp-3">{a.abstract.slice(0, 350)}...</p>}
+                  {a.abstract && <p className="mt-3 text-xs text-neutral-600 leading-relaxed line-clamp-3">{a.abstract.slice(0, 350)}...</p>}
                 </div>
               ))}
               <Pagination

@@ -20,16 +20,16 @@ export function phaseLabel(phase) {
 
 export function getPhaseBadgeClass(phase) {
   const p = Number(phase)
-  if (p >= 4) return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-  if (p >= 3) return 'bg-sky-500/15 text-sky-300 border-sky-500/30'
-  if (p >= 2) return 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-  return 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+  if (p >= 4) return 'bg-green-100 text-green-800 border-green-300'
+  if (p >= 3) return 'bg-sky-100 text-sky-800 border-sky-300'
+  if (p >= 2) return 'bg-amber-100 text-amber-800 border-amber-300'
+  return 'bg-gray-100 text-gray-700 border-gray-300'
 }
 
 export function getPhaseColor(phase) {
   const p = Number(phase)
-  if (p >= 4) return '#10b981'
-  if (p >= 3) return '#3b82f6'
-  if (p >= 2) return '#f59e0b'
+  if (p >= 4) return '#2f6b14'
+  if (p >= 3) return '#0369a1'
+  if (p >= 2) return '#b45309'
   return '#64748b'
 }

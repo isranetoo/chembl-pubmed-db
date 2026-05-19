@@ -1,11 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  font-family: 'Kanit', sans-serif;
+  color-scheme: light;
 }
 
 html, body, #root {
@@ -13,30 +14,34 @@ html, body, #root {
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
-  font-family: 'DM Sans', sans-serif;
+  @apply bg-white text-gray-800 antialiased;
+  font-family: 'Kanit', sans-serif;
+  font-weight: 400;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Kanit', sans-serif;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 code, .font-mono {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+  scrollbar-color: rgba(92, 141, 47, 0.35) transparent;
 }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.15); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.3); }
+::-webkit-scrollbar-thumb { background: rgba(92, 141, 47, 0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(92, 141, 47, 0.45); }
 
 input, select, textarea { @apply outline-none; }
 
+/* ─── Animations ─────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -68,12 +73,45 @@ input, select, textarea { @apply outline-none; }
 .animate-scale-in { animation: scaleIn 0.4s ease-out both; }
 .animate-float { animation: float 5s ease-in-out infinite; }
 
+/* ─── Theme primitives (light + green) ───────────────────── */
+.text-gradient {
+  @apply bg-gradient-to-br from-green-600 to-green-900 text-transparent bg-clip-text;
+}
+
+.btn-primary {
+  @apply inline-flex items-center gap-2 text-white bg-gradient-to-br from-green-600 to-green-900 py-3 px-6 rounded-lg font-medium shadow-md hover:shadow-xl hover:scale-[1.03] transition-all duration-300;
+}
+
+.btn-outline {
+  @apply inline-flex items-center gap-2 py-3 px-6 rounded-lg border border-[#215153] text-gray-800 font-medium hover:bg-gray-50 hover:scale-[1.03] transition-all duration-300;
+}
+
 .glass {
-  @apply bg-white/[0.04] backdrop-blur-2xl border border-white/[0.08] rounded-2xl;
+  @apply bg-white border border-gray-200 rounded-2xl;
+  box-shadow: 0 4px 14px rgba(33, 81, 83, 0.08);
 }
+
 .glass-card {
-  @apply bg-white/[0.05] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-xl shadow-black/10 transition-all duration-300 hover:bg-white/[0.07] hover:border-white/[0.14];
+  @apply bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-0.5;
+  box-shadow: 0 4px 14px rgba(33, 81, 83, 0.08);
 }
+.glass-card:hover {
+  box-shadow: 0 12px 28px rgba(33, 81, 83, 0.12);
+}
+
+/* Cards with the website's signature top-accent border */
+.accent-card {
+  @apply bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border-t-4 border-[#5c8d2f];
+}
+
 .glass-input {
-  @apply bg-white/[0.06] backdrop-blur-sm border border-white/[0.1] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 transition-all duration-200 focus:border-emerald-500/40 focus:bg-white/[0.08] focus:ring-1 focus:ring-emerald-500/20;
+  @apply bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:border-[#5c8d2f] focus:ring-2 focus:ring-[#5c8d2f]/20;
+}
+
+.surface-soft {
+  @apply bg-gray-50 border border-gray-200 rounded-xl;
+}
+
+.divider {
+  @apply border-gray-200;
 }

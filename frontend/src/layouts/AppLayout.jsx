@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink } from 'react-router-dom'
 import { Database, Search, FlaskConical, Newspaper, Crosshair, Menu, X, Sparkles, GitCompareArrows } from 'lucide-react'
 
 const LOGO_SRC = '/assets/img/logo.png'
@@ -23,8 +23,8 @@ function NavItem({ to, label, icon: Icon, onClick }) {
         [
           'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300',
           isActive
-            ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/20 shadow-lg shadow-emerald-500/5'
-            : 'text-white/50 hover:bg-white/[0.06] hover:text-white/90 border border-transparent',
+            ? 'text-white bg-gradient-to-br from-green-600 to-green-900 shadow-md shadow-green-900/20'
+            : 'text-gray-600 hover:bg-green-50 hover:text-green-800 border border-transparent',
         ].join(' ')
       }
     >
@@ -36,53 +36,53 @@ function NavItem({ to, label, icon: Icon, onClick }) {
 
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const location = useLocation()
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background orbs */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-emerald-600/[0.07] rounded-full blur-[120px] animate-float" />
-        <div className="absolute top-1/2 -right-32 w-[400px] h-[400px] bg-teal-500/[0.05] rounded-full blur-[100px]" style={{ animationDelay: '2s', animation: 'float 7s ease-in-out infinite' }} />
-        <div className="absolute -bottom-20 left-1/3 w-[350px] h-[350px] bg-cyan-500/[0.04] rounded-full blur-[100px]" style={{ animationDelay: '4s', animation: 'float 6s ease-in-out infinite' }} />
-      </div>
-
+    <div className="min-h-screen bg-white text-gray-800 font-sans">
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-slate-950/80 backdrop-blur-xl border-b border-white/[0.06]">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white/90 backdrop-blur-lg border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center overflow-hidden">
+          <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm">
             <img src={LOGO_SRC} alt="DrugXpert" className="w-7 h-7 object-contain" />
           </div>
-          <span className="font-semibold text-sm" style={{ fontFamily: 'Outfit' }}>DrugXpert</span>
+          <span className="font-semibold text-gray-800">DrugXpert</span>
         </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg bg-white/5 text-white/70">
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-2 rounded-lg bg-gray-50 text-gray-700 border border-gray-200"
+        >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       <div className="relative z-10 mx-auto grid min-h-screen max-w-[1440px] gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Sidebar */}
-        <aside className={`
-          fixed lg:sticky top-0 left-0 h-screen z-40
-          w-[260px] p-4 pt-5
-          transform transition-transform duration-300 lg:translate-x-0
-          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
-          <div className="h-full glass rounded-2xl p-5 flex flex-col overflow-y-auto">
+        <aside
+          className={`
+            fixed lg:sticky top-0 left-0 h-screen z-40
+            w-[260px] p-4 pt-5
+            transform transition-transform duration-300 lg:translate-x-0
+            ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
+        >
+          <div className="h-full bg-white rounded-2xl shadow-card border border-gray-200 p-5 flex flex-col overflow-y-auto">
             {/* Logo */}
             <div className="mb-8 animate-fade-in-up">
               <div className="flex items-center gap-3 mb-4">
-                <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400/15 to-teal-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg shadow-emerald-500/10 overflow-hidden">
+                <div className="relative w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden">
                   <img src={LOGO_SRC} alt="DrugXpert logo" className="w-9 h-9 object-contain" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold tracking-tight" style={{ fontFamily: 'Outfit' }}>DrugXpert</h1>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">Scientific Explorer</p>
+                  <h1 className="text-lg font-bold tracking-tight text-gray-800">DrugXpert</h1>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-medium">Scientific Explorer</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
-                <span className="text-[11px] text-emerald-300/80">ChEMBL + PubMed</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200">
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-green-600"
+                  style={{ animation: 'pulse-dot 2s ease-in-out infinite' }}
+                />
+                <span className="text-[11px] text-green-800 font-medium">ChEMBL + PubMed</span>
               </div>
             </div>
 
@@ -97,12 +97,12 @@ export default function AppLayout() {
 
             {/* Footer */}
             <div className="mt-auto pt-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <div className="rounded-xl bg-gradient-to-br from-emerald-500/[0.08] to-teal-500/[0.04] border border-white/[0.06] p-4">
+              <div className="rounded-xl bg-green-50 border-t-4 border-[#5c8d2f] p-4 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles size={14} className="text-emerald-400" />
-                  <span className="text-xs font-semibold text-white/70">API Endpoint</span>
+                  <Sparkles size={14} className="text-green-700" />
+                  <span className="text-xs font-semibold text-gray-700">API Endpoint</span>
                 </div>
-                <code className="text-[11px] text-emerald-300/60 break-all leading-relaxed">localhost:8000</code>
+                <code className="text-[11px] text-green-800 break-all leading-relaxed font-mono">localhost:8000</code>
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@ export default function AppLayout() {
 
         {/* Mobile overlay */}
         {mobileOpen && (
-          <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setMobileOpen(false)} />
+          <div className="fixed inset-0 bg-gray-900/30 z-30 lg:hidden" onClick={() => setMobileOpen(false)} />
         )}
 
         {/* Main content */}

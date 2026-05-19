@@ -30,15 +30,15 @@ export default function CompoundsPage() {
       key: 'name', header: 'Composto',
       render: (row) => (
         <Link to={`/compounds/${row.chembl_id}`} className="group flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/10 flex items-center justify-center flex-shrink-0">
-            <FlaskConical size={14} className="text-emerald-400" />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-600 to-green-900 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <FlaskConical size={14} className="text-white" />
           </div>
           <div>
-            <p className="font-medium text-white/90 group-hover:text-emerald-300 transition-colors flex items-center gap-1">
+            <p className="font-medium text-gray-800 group-hover:text-green-700 transition-colors flex items-center gap-1">
               {row.name || 'Sem nome'}
-              <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+              <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-green-700" />
             </p>
-            <p className="text-[11px] text-white/30 font-mono">{row.chembl_id}</p>
+            <p className="text-[11px] text-gray-500 font-mono">{row.chembl_id}</p>
           </div>
         </Link>
       ),
@@ -47,32 +47,34 @@ export default function CompoundsPage() {
     { key: 'mol_weight', header: 'MW', render: (row) => formatNumber(row.mol_weight, { maximumFractionDigits: 2 }) },
     { key: 'qed', header: 'QED', render: (row) => (
       <div className="flex items-center gap-2">
-        <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" style={{ width: `${(row.qed || 0) * 100}%` }} />
+        <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full rounded-full bg-gradient-to-r from-green-600 to-green-900" style={{ width: `${(row.qed || 0) * 100}%` }} />
         </div>
-        <span className="text-xs text-white/50">{formatNumber(row.qed, { maximumFractionDigits: 3 })}</span>
+        <span className="text-xs text-gray-600">{formatNumber(row.qed, { maximumFractionDigits: 3 })}</span>
       </div>
     )},
     {
       key: 'max_clinical_phase', header: 'Fase',
       render: (row) => <Pill className={getPhaseBadgeClass(row.max_clinical_phase)}>{phaseLabel(row.max_clinical_phase)}</Pill>,
     },
-    { key: 'total_indications', header: 'Ind.', render: (row) => <span className="text-white/50">{formatNumber(row.total_indications)}</span> },
-    { key: 'total_articles', header: 'Art.', render: (row) => <span className="text-white/50">{formatNumber(row.total_articles)}</span> },
+    { key: 'total_indications', header: 'Ind.', render: (row) => <span className="text-gray-600">{formatNumber(row.total_indications)}</span> },
+    { key: 'total_articles', header: 'Art.', render: (row) => <span className="text-gray-600">{formatNumber(row.total_articles)}</span> },
   ]
 
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
       <div className="animate-fade-in-up">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400/60 mb-2">Compounds</p>
-        <h1 className="text-3xl font-bold tracking-tight text-white" style={{ fontFamily: 'Outfit' }}>Compound Explorer</h1>
-        <p className="mt-2 text-sm text-white/35">Navegue, filtre e descubra compostos farmacológicos do ChEMBL.</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-green-700 mb-2">Compounds</p>
+        <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-gray-800">
+          <span className="bg-gradient-to-br from-green-600 to-green-900 text-transparent bg-clip-text">Compound</span> Explorer
+        </h1>
+        <p className="mt-2 text-sm text-neutral-600">Navegue, filtre e descubra compostos farmacológicos do ChEMBL.</p>
       </div>
 
       {/* Filters */}
       <Section title="Filtros" delay={0.05}>
-        <div className="flex items-center gap-2 mb-4 text-white/40">
+        <div className="flex items-center gap-2 mb-4 text-gray-500">
           <SlidersHorizontal size={14} />
           <span className="text-xs">Refine sua busca</span>
         </div>
@@ -114,10 +116,10 @@ export default function CompoundsPage() {
       {/* Results */}
       <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
         {isLoading ? <Loader label="Buscando compostos..." /> : null}
-        {error ? <div className="glass-card p-5 border-red-500/20 text-red-300 text-sm">{error.message}</div> : null}
+        {error ? <div className="bg-white border border-rose-300 rounded-xl p-5 text-rose-700 text-sm">{error.message}</div> : null}
         {!isLoading && !error && (!data?.items?.length ? <EmptyState /> : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm text-white/35">
+            <div className="flex items-center justify-between text-sm text-neutral-500">
               <p>{formatNumber(data.total)} compostos</p>
               <p>Página {data.page}/{data.pages}</p>
             </div>
